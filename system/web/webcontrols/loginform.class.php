@@ -103,6 +103,15 @@
 		{
 			parent::__construct( $controlId );
 
+			// event handling
+			$this->events->add(new \System\Web\Events\LoginFormSubmitEvent());
+
+			$onPostMethod = 'on' . ucwords( $this->controlId ) . 'Submit';
+			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $onPostMethod))
+			{
+				$this->events->registerEventHandler(new \System\Web\Events\LoginFormSubmitEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $onPostMethod));
+			}
+
 			if( \System\Web\WebApplicationBase::getInstance()->config->authenticationRequireSSL && \System\Web\WebApplicationBase::getInstance()->config->protocol <> 'https' && !isset($GLOBALS["__DISABLE_HEADER_REDIRECTS__"]))
 			{
 				// redirect to secure server (forward session)
@@ -322,17 +331,26 @@
 			{
 				// Authenticate User based on credentials
 				$auth = \System\Security\Authentication::authenticate( $this->getControl( 'username' )->value, $this->getControl( 'password' )->value );
-				if( $auth->authenticated() )
+
+				$authenticated = $auth->authenticated();
+				$disabled = $auth->disabled();
+				$lockedOut = $auth->lockedOut();
+				$this->events->raise(new \System\Web\Events\LoginFormSubmitEvent(), $this, array(
+																			'authenticated'=>$authenticated
+																			, 'disabled' => $disabled
+																			, 'lockedOut' => $lockedOut));
+
+				if( $authenticated )
 				{
 					// Set Auth Cookie
 					\System\Security\FormsAuthentication::redirectFromLoginPage( $this->getControl( 'username' )->value, $this->getControl( 'permanent' )->value );
 				}
-				elseif( $auth->disabled() )
+				elseif( $disabled )
 				{
 					// Account disabled
 					$app->messages->add( new \System\Base\AppMessage( $this->disabledMsg, \System\Base\AppMessageType::Fail() )) ;
 				}
-				elseif( $auth->lockedOut() )
+				elseif( $lockedOut )
 				{
 					// Account locked out
 					$app->messages->add( new \System\Base\AppMessage( $this->lockoutMsg, \System\Base\AppMessageType::Fail() )) ;
