@@ -742,9 +742,9 @@
 <head>
 <title>Unhandled Exception: ".htmlentities($e->getMessage())."</title>
 <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">
-<link href=\"" . $this->config->assets . "/debug/exception.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
-<link href=\"" . $this->config->assets . "/debug/debug.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
-<script src=\"" . $this->config->assets . "/debug/debug.js\" type=\"text/javascript\"></script>
+<link href=\"" . $this->config->assets . "/web/exception.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
+<link href=\"" . $this->config->assets . "/web/debug.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
+<script src=\"" . $this->config->assets . "/web/debug.js\" type=\"text/javascript\"></script>
 </head>
 <body>
 
@@ -890,15 +890,22 @@ ExceptionWindow.document.write(\"".addslashes(str_replace(array("\r\n", "\r", "\
 		 */
 		private function startSession()
 		{
-			if( isset( HTTPRequest::$post['PHPSESSID'] ))
+			if( ApplicationBase::getInstance()->config->cookielessSession )
 			{
-				$this->session->start( HTTPRequest::$post['PHPSESSID'] );
-				unset( HTTPRequest::$post['PHPSESSID'] );
-			}
-			elseif( isset( HTTPRequest::$get['PHPSESSID'] ))
-			{
-				$this->session->start( HTTPRequest::$get['PHPSESSID'] );
-				unset( HTTPRequest::$get['PHPSESSID'] );
+				if( isset( HTTPRequest::$post['PHPSESSID'] ))
+				{
+					$this->session->start( HTTPRequest::$post['PHPSESSID'] );
+					unset( HTTPRequest::$post['PHPSESSID'] );
+				}
+				elseif( isset( HTTPRequest::$get['PHPSESSID'] ))
+				{
+					$this->session->start( HTTPRequest::$get['PHPSESSID'] );
+					unset( HTTPRequest::$get['PHPSESSID'] );
+				}
+				else
+				{
+					$this->session->start();
+				}
 			}
 			else
 			{
@@ -950,9 +957,9 @@ ExceptionWindow.document.write(\"".addslashes(str_replace(array("\r\n", "\r", "\
 <head>
 <title>Building...</title>
 <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">
-<link href=\"" . $this->config->assets . "/debug/debug.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
-".(isset($request["nostyle"])?"":"<link href=\"" . $this->config->assets . "/debug/exception.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />")."
-<script src=\"" . $this->config->assets . "/debug/debug.js\" type=\"text/javascript\"></script>
+<link href=\"" . $this->config->assets . "/web/debug.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
+".(isset($request["nostyle"])?"":"<link href=\"" . $this->config->assets . "/web/exception.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />")."
+<script src=\"" . $this->config->assets . "/web/debug.js\" type=\"text/javascript\"></script>
 </head>
 <body>
 
