@@ -9,7 +9,7 @@
 
 
 	/**
-	 * Provides application wide authentication using Basic HTTP Headers
+	 * Provides application wide authentication for Web Services using stateless tokens
 	 *
 	 * @package			PHPRum
 	 * @subpackage		Security
@@ -17,6 +17,12 @@
 	 */
 	class WebServiceAuthentication extends Authentication
 	{
+		/**
+		 * specifies the auth secret
+		 * @var string
+		 */
+		static protected $authSecret = null;
+
 		/**
 		 * returns true if user authenticated
 		 *
@@ -37,16 +43,22 @@
 		 * 
 		 * @param   string	$uid		unique value representing user
 		 * @param   string	$secret		secret
+		 * @param   int     $expires	time in seconds until token expires
 		 * @return void
 		 */
-		public static function authenticateSecret($uid, $secret)
+		public static function authenticateSecret($uid, $secret, $expires = 0)
 		{
-			WebServiceAuthentication::setAuthUser($uid);
-			$salt = $_SERVER["REMOTE_ADDR"].$uid;
-			if( $secret === Authentication::generateHash('sha1', \System\Web\WebApplicationBase::getInstance()->config->authenticationFormsSecret, $salt ))
+			$timestamp = substr($secret, 40);
+			$hash = substr($secret, 0, 40);
+			$salt = $_SERVER["REMOTE_ADDR"].$uid.$timestamp;
+			if( 0 === $expires || $timestamp + $expires > time() )
 			{
-				Authentication::$identity = WebServiceAuthentication::getAuthUser();
-				return true;
+				if( $hash === Authentication::generateHash('sha1', \System\Web\WebApplicationBase::getInstance()->config->authenticationFormsSecret, $salt ))
+				{
+					Authentication::$identity = $uid;
+					self::$authSecret = $secret;
+					return true;
+				}
 			}
 			return false;
 		}
@@ -60,12 +72,13 @@
 		 */
 		public static function setAuthUser( $uid )
 		{
-			$salt = $_SERVER["REMOTE_ADDR"].$uid;
-			$secret = Authentication::generateHash('sha1', \System\Web\WebApplicationBase::getInstance()->config->authenticationFormsSecret, $salt);
+			//Authentication::$identity = $uid;
+			$timestamp = time();
+			$salt = $_SERVER["REMOTE_ADDR"].$uid.$timestamp;
+			$secret = Authentication::generateHash('sha1', \System\Web\WebApplicationBase::getInstance()->config->authenticationFormsSecret, $salt) . $timestamp;
 
-			// set session cookie
-			\System\Base\ApplicationBase::getInstance()->session[\System\Web\WebApplicationBase::getInstance()->config->authenticationFormsCookieName] = $uid;
-			\System\Base\ApplicationBase::getInstance()->session[\System\Web\WebApplicationBase::getInstance()->config->authenticationFormsCookieName.'_secret'] = $secret;
+			Authentication::$identity = $uid;
+			self::$authSecret = $secret;
 		}
 
 
@@ -76,14 +89,7 @@
 		 */
 		public static function getAuthUser()
 		{
-			if( isset( \System\Base\ApplicationBase::getInstance()->session[\System\Base\ApplicationBase::getInstance()->config->authenticationFormsCookieName] ))
-			{
-				return \System\Base\ApplicationBase::getInstance()->session[\System\Base\ApplicationBase::getInstance()->config->authenticationFormsCookieName];
-			}
-			else
-			{
-				throw new \System\Base\InvalidOperationException("Auth user is not set, call WebServiceAuthentication::isAuthUserSet()");
-			}
+			return Authentication::$identity;
 		}
 
 
@@ -94,14 +100,7 @@
 		 */
 		public static function getAuthSecret()
 		{
-			if( isset( \System\Base\ApplicationBase::getInstance()->session[\System\Base\ApplicationBase::getInstance()->config->authenticationFormsCookieName.'_secret'] ))
-			{
-				return \System\Base\ApplicationBase::getInstance()->session[\System\Base\ApplicationBase::getInstance()->config->authenticationFormsCookieName.'_secret'];
-			}
-			else
-			{
-				return '';
-			}
+			return self::$authSecret;
 		}
 
 
@@ -112,14 +111,7 @@
 		 */
 		public static function isAuthUserSet()
 		{
-			if( isset( \System\Base\ApplicationBase::getInstance()->session[\System\Base\ApplicationBase::getInstance()->config->authenticationFormsCookieName] ))
-			{
-				return true;
-			}
-			else
-			{
-				return false;
-			}
+			return (bool)Authentication::$identity;
 		}
 
 
@@ -130,10 +122,7 @@
 		 */
 		public static function signout()
 		{
-			if( isset( \System\Web\WebApplicationBase::getInstance()->session[\System\Base\ApplicationBase::getInstance()->config->authenticationFormsCookieName] ))
-			{
-				unset( \System\Web\WebApplicationBase::getInstance()->session[\System\Base\ApplicationBase::getInstance()->config->authenticationFormsCookieName] );
-			}
+			Authentication::$identity = null;
 		}
 	}
 ?>
