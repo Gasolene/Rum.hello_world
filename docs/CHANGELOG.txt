@@ -3,9 +3,12 @@ Change log
 
 1. Version History
 
-version 6.4.17-rc2 - 02.26.13
-	- added JSONRestServiceBase, XMLRestServiceBase
-	- removed JSONServiceBase
+version 6.4.17-rc2 - 02.28.13
+	- removed redundant JSONServiceBase
+	- changed RESTWebServiceBase now supports multiple content types
+	- changed RESTWebServiceBase now handles encoding completely
+	- changed URI rewriter no longer handles session id's
+	- fixed bug in WebApplicationBase where not referencing the post config request param
 
 version 6.4.17-rc1 - 02.25.13
 	- changed WebControlBase output to remove whitespace from HTML
