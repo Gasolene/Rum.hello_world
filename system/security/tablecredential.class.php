@@ -66,6 +66,37 @@
 
 
 		/**
+		 * checks if uid is authorized based on the credential
+		 *
+		 * @param   string	$username	specifies username
+		 * @return  bool
+		 */
+		public function authorize( $username )
+		{
+			// connect to data source
+			$da = null;
+			if( isset( $this->credential['dsn'] )) {
+				$da = \System\DB\DataAdapter::create( $this->credential['dsn'] );
+			}
+			else {
+				$da = \System\Base\ApplicationBase::getInstance()->dataAdapter;
+			}
+
+			$ds = $da->openDataSet( $this->credential['source'] );
+			if( $ds ) {
+				if( $ds->seek( $this->credential['username-field'], (string)$username, true )) {
+					if( $this->checkAccountActive( $ds )) {
+						// Success!
+						return true;
+					}
+				}
+			}
+
+			return false;
+		}
+
+
+		/**
 		 * compare passwords, return true on success
 		 * 
 		 * @param type $encryptedPassword
@@ -138,18 +169,22 @@
 			{
 				if($ds[$this->credential['attemptwindowexpires-field']] < time()) {
 					// Reset failed count as attempt window has reset
-					$ds->dataAdapter->queryBuilder()
-							->update($ds->table)
-							->setColumns($ds->table, array($this->credential['failedattemptcount-field'],$this->credential['attemptwindowexpires-field']),
-									array(1,time() + \System\Web\WebApplicationBase::getInstance()->config->authenticationAttemtpWindow))
-							->runQuery();
+					$ds[$this->credential['failedattemptcount-field']] = 1;
+					$ds[$this->credential['attemptwindowexpires-field']] = time() + \System\Web\WebApplicationBase::getInstance()->config->authenticationAttemtpWindow;
 				}
 				else {
 					// Increment failed count
-					$ds->dataAdapter->queryBuilder()
-							->update($ds->table)
-							->set($ds->table, $this->credential['failedattemptcount-field'],1)
-							->runQuery();
+					$ds[$this->credential['failedattemptcount-field']] = $ds[$this->credential['failedattemptcount-field']] + 1;
+				}
+
+				try
+				{
+					// Store failed count with user
+					$ds->update();
+				}
+				catch(\System\DB\DatabaseException $e)
+				{
+					throw new \System\DB\DatabaseException("Cannot update credential source, source must be updatable");
 				}
 			}
 		}

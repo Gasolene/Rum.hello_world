@@ -28,8 +28,11 @@
 			{
 				if( FormsAuthentication::authenticateSecret( FormsAuthentication::getAuthCookie(), FormsAuthentication::getAuthSecret() ))
 				{
-					Authentication::$identity = FormsAuthentication::getAuthCookie();
-					return true;
+					if( Authentication::authorize(FormsAuthentication::getAuthCookie() ))
+					{
+						Authentication::$identity = FormsAuthentication::getAuthCookie();
+						return true;
+					}
 				}
 			}
 			return false;

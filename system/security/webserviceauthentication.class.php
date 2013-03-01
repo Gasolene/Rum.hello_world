@@ -32,7 +32,10 @@
 		{
 			if( WebServiceAuthentication::isAuthUserSet() )
 			{
-				return WebServiceAuthentication::authenticateSecret( WebServiceAuthentication::getAuthUser(), WebServiceAuthentication::getAuthSecret() );
+				if( WebServiceAuthentication::authenticateSecret( WebServiceAuthentication::getAuthUser(), WebServiceAuthentication::getAuthSecret() ))
+				{
+					return Authentication::authorize(WebServiceAuthentication::getAuthUser());
+				}
 			}
 			return false;
 		}
