@@ -1,4 +1,13 @@
 #############
+## RUM
+#############
+
+/.cache/
+/.build/
+/app/config/environments/dev/application.xml
+/app/config/environments/test/application.xml
+
+#############
 ## Netbeans
 #############
 
@@ -165,7 +174,5 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-# Mac crap
+# Mac
 .DS_Store
-/.cache/
-/.build/

@@ -1,6 +1,4 @@
-<h1>Sorry, Unexpected Error (500)</h1>
+<h1>Unexpected Error</h1>
 
-<p>The application encountered an unexpected condition which prevented it from fulfilling the request</p>
-<p>If this happens again, please contact the Webmaster or administrator</p>
+<p>The application encountered an unexpected error while trying to load the page. Please refresh and try again. If the problem persists, please contact the website administrator.</p>
 
-<p>Sorry for any inconvenience</p>

@@ -1,6 +1,3 @@
-<h1>Sorry, Service Unavailable (503)</h1>
+<h1>Service Unavailable</h1>
 
-<p>This service is temporarily unavailable while we perform routine maintenance</p>
-<p>Please try again in a few minutes</p>
-
-<p>Sorry for any inconvenience</p>
+<p>This service is temporarily unavailable while we perform routine maintenance. Please try again in a few minutes.</p>
