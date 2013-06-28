@@ -3,6 +3,36 @@ Change log
 
 1. Version History
 
+May 15, 2013 - Retiring changelog, use Git to track changes
+
+version 6.4.22 - 05.13.13
+	- fixed bug in FileTranslator where not caching
+	- fixed bug in FileTranslator where not comparing the correct language
+
+version 6.4.21 - 05.08.13
+	- fixed bug in ApplicationBase where clearing empty buffer on exception
+	- fixed bug in LoginForm where email address lookup was case sensitive
+	- fixed bug in DBCache where not caching
+
+version 6.4.20 - 04.11.13
+	- fixed bug in FileBrowser where uploaded files that contain an error are ignored as filesize is 0
+	- fixed bug in FileSizeValidator where files that are 0 bytes do not result in error
+	- patched source code in FileSizeValidator so code completion has appropriate description
+	- changed FileSizeValidator constructor now accepts minSize in KB
+	- fixed bug in Selectors: DateSelector, TimeSelector, and DateTimeSelector
+		- fixed bug in Selectors where setting onchange javascript event for null element when allowNull is false
+		- fixed bug in Selectors where ajax validation not sending entire value
+		- fixed bug in Selectors where ajax validation postback not being sent
+	- added DateRangeValidator (Steph)
+	- fixed bug in FileSizeValidator where always failing
+	- changed FileBrowser removed auto filesize validator
+	- fixed bug in WebApplicationBase where not logging ajax exceptions to the console
+	- fixed bug in PageControllerBase where trying to render ajax messages when no message element exists
+
+version 6.4.19 - 03.29.13
+	- fixed bug in GridView when setting filter values when filter value = ''
+	- fixed bug in WebControlBase::setEnableVieState() where not cascading
+
 version 6.4.18-rc4 - 03.26.13
 	- fixed bug in TestCaseBase where setting dataAdapter when no dsn connection specified
 	- fixed bug where upgrade changes default page param
