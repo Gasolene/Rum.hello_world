@@ -89,6 +89,11 @@
 .gridview tfoot .next {
 }
 
+.gridview tfoot a,
+.gridview tfoot span {
+  padding-left: 4px;
+}
+
 .gridview .summary {
 }
 
@@ -195,7 +200,7 @@
   padding: 0px;
 }
 
-.gridview .edit .button {
+.gridview tbody .edit_action .button {
   background: none;
   border: none;
   background-image: url(icons/edit-icon.png);
@@ -205,7 +210,8 @@
   height: 32px;
 }
 
-.gridview .delete .button {
+.gridview tbody .delete_action .button,
+.gridview tbody .action .button {
   background: none;
   border: none;
   background-image: url(icons/delete-icon.png);
@@ -215,8 +221,7 @@
   height: 32px;
 }
 
-.gridview tfoot .button.add {
-  display: block;
+.gridview tfoot .action .button {
   background: none;
   border: none;
   background-image: url(icons/new-icon.png);

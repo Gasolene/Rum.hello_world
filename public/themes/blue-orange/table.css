@@ -94,6 +94,11 @@
 .gridview tfoot .next {
 }
 
+.gridview tfoot a,
+.gridview tfoot span {
+  padding-left: 4px;
+}
+
 .gridview .summary {
 }
 

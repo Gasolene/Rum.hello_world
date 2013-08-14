@@ -218,7 +218,7 @@ input.watermark {
   right: 5px;
 }
 
-.buttons .button {
+.button {
 	-moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
 	-webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
 	box-shadow:inset 0px 1px 0px 0px #ffffff;
@@ -240,7 +240,7 @@ input.watermark {
 	cursor: pointer;
 }
 
-.buttons .button:hover {
+.button:hover {
 	-moz-box-shadow:inset 0px 1px 0px 0px #ffffff;
 	-webkit-box-shadow:inset 0px 1px 0px 0px #ffffff;
 	box-shadow:inset 0px 1px 0px 0px #ffffff;
@@ -251,7 +251,7 @@ input.watermark {
 	background-color:#dfdfdf;
 }
 
-.buttons .button:active {
+.button:active {
 	position:relative;
 	top:1px;
 }
