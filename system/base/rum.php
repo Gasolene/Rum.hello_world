@@ -14,7 +14,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Base;
 
@@ -128,7 +128,7 @@
 	/**
 	 * specifies the page request parameter
 	 */
-	if( !defined( '__PATH_REQUEST_PARAMETER__' ))		define( '__PATH_REQUEST_PARAMETER__',		'page' );
+	if( !defined( '__PATH_REQUEST_PARAMETER__' ))		define( '__PATH_REQUEST_PARAMETER__',		'path' );
 
 	/**
 	 * specifies the async request parameter
@@ -350,6 +350,7 @@
 	$_SERVER[__ENV_PARAMETER__] = isset($_SERVER[__ENV_PARAMETER__])?$_SERVER[__ENV_PARAMETER__]:__DEV_ENV__;
 
 	// include required scripts
+	require __SYSTEM_PATH__ . '/base/object.class.php';
 	require __SYSTEM_PATH__ . '/base/applicationbase.class.php';
 	require __SYSTEM_PATH__ . '/base/framework.info.file';
 	require __SYSTEM_PATH__ . '/base/classloader.inc.php';

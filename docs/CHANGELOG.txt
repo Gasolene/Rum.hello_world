@@ -3,22 +3,36 @@ Change log
 
 1. Version History
 
-May 15, 2013 - Retiring changelog, use Git to track changes
+May 15, 2013 - retiring changelog, will use Git to log changes.
 
-version 6.4.22 - 05.13.13
-	- fixed bug in FileTranslator where not caching
-	- fixed bug in FileTranslator where not comparing the correct language
-
-version 6.4.21 - 05.08.13
+version 6.5.0-beta-1.04 - 05.13.13
 	- fixed bug in ApplicationBase where clearing empty buffer on exception
 	- fixed bug in LoginForm where email address lookup was case sensitive
 	- fixed bug in DBCache where not caching
+	- fixed bug in FileTranslator where not caching
+	- fixed bug in FileTranslator where not comparing the correct language
 
-version 6.4.20 - 04.11.13
+version 6.5.0-beta-1.03 - 04.12.13
+	- fixed bug in rum.js Rum.flash() where flashing duplicate messages
+	- fixed bug in rum.js Rum.flash() where dismiss link not working
+	- fixed bug in GridView Controls where not referencing Rum.evalAsync()
+	- replaced all unset($request[param]) back in UI controls (removed in 6.5.0-beta-1.00)
+	- updated copyright notice
+	- fixed bug in WebApplicationBase where converting Array to string on line 1247
+	- changed Rum:messages() no longer contains dismiss event
+
+version 6.5.0-beta-1.02 - 04.11.13
+	- changed rum.js
+		- added sendAsyncWithCallback(htto_request, url, params, method, callback)
+		- changed sendAsync(url, params, method) no longer accepts http request object
+	- changed ActiveRecordBase::all() and more() now support table.field syntax
 	- fixed bug in FileBrowser where uploaded files that contain an error are ignored as filesize is 0
 	- fixed bug in FileSizeValidator where files that are 0 bytes do not result in error
 	- patched source code in FileSizeValidator so code completion has appropriate description
 	- changed FileSizeValidator constructor now accepts minSize in KB
+	- removed WebControlBase::ajaxHTTPRequest
+	- changed TextBox, InputBase and ListBox combined ajaxPostBack and ajaxValidation events
+	- removed &__validation=1 from all controls
 	- fixed bug in Selectors: DateSelector, TimeSelector, and DateTimeSelector
 		- fixed bug in Selectors where setting onchange javascript event for null element when allowNull is false
 		- fixed bug in Selectors where ajax validation not sending entire value
@@ -27,23 +41,46 @@ version 6.4.20 - 04.11.13
 	- fixed bug in FileSizeValidator where always failing
 	- changed FileBrowser removed auto filesize validator
 	- fixed bug in WebApplicationBase where not logging ajax exceptions to the console
-	- fixed bug in PageControllerBase where trying to render ajax messages when no message element exists
 
-version 6.4.19 - 03.29.13
-	- fixed bug in GridView when setting filter values when filter value = ''
-	- fixed bug in WebControlBase::setEnableVieState() where not cascading
-
-version 6.4.18-rc4 - 03.26.13
-	- fixed bug in TestCaseBase where setting dataAdapter when no dsn connection specified
-	- fixed bug where upgrade changes default page param
-	- fixed bug in PageController when OS can't determine if glob is empty or an error has occurred
-
-version 6.4.18-rc3 - 03.14.13
+version 6.5.0-beta-1.01 - 03.28.13
+	- added default class attribute to WebControlBase
 	- fixed bug in WebApplicationBase where not rendering async exceptions - now uses javascript popup
-	- removed broken DataAdapters
-	- remove auto dismiss on syncronous flash message
+	- async flash messages now render dismiss element
+	- fixed bug in TestCaseBase where setting dataAdapter when no dsn connection specified
+	- fixed bug in PageController when OS can't determine whether glob returned no results, or an error occurred
+	- fixed bug in GridView where setting filter values when value == ''
+	- removed Button::submitText
+	- fixed bug in ListControlBase where overwriting state if nothing submitted
+	- fixed bug in WeControlBase::setEnableViewState() where not cascading
 
-version 6.4.18-rc2 - 03.07.13
+version 6.5.0-beta-1.00 - 03.11.13
+	- major change to js scripts (lighten output)
+		- shortened function names in js scripts
+		- removed button.js
+		- removed textbox.js
+		- combines page.js and form.js into rum.js
+		- removed Rum.fadeIn(), Rum.fadeOut(), Rum.setOpacity()
+		- removed js animations and message events (use JQuery instead)
+		- added js functions Rum.id(), added Rum.assert(), Rum.clear(), Rum.reset() Rum.flash(), Rum.forward()
+		- added Rum.sendAsync
+		- moved all js into single rum.js
+		- compress js scripts
+		- changed Rum.sendAsync now handles callback implementation
+		- Rum.assert() and Rum.clear() now set and remove invalid class
+		- remove auto dismiss on syncronous flash message
+	- removed all traces of __post from UI controls (lighten output)
+	- removed all unset($request[param]) from UI controls
+	- renamed Form::hiddenField to Form::honeyPot
+	- removed Button::$disableOnSubmit (use JQuery instead)
+	- removed Button::$submitText (use JQuery instead)
+	- removed TextBox::watermark (use JQuery instead)
+	- removed TextBox::multiline, use TextArea instead
+	- separated TextBox and TextArea
+	- added View::contentExpires
+	- added TextBox::placeholder
+	- added cache headers to assets
+
+version 6.4.18-rc2 - 03.01.13
 	- patched security hole in credentials where session could remain active after user authorization is revoked
 	- fixed bug in TableCredential where not using ActiveRecords to update source
 	- fixed bug in TableCredential where source contained multiple tables

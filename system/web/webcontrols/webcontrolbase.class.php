@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -16,27 +16,23 @@
 	 * @property bool $enableViewState Specifies whether to enable view state preservation
 	 * @property bool $visible Specifies whether control is visible
 	 * @property bool $escapeOutput Specifies whether to escape the output
-	 * @property string $ajaxCallback Specifies the ajax callback uri (optional)
-	 * @property string $ajaxEventHandler Specifies the name of the ajax event handler javascript function (optional)
-	 * @property string $ajaxHTTPRequest Specifies the name of the ajax HTTPRequest object (optional)
 	 * @property WebControlAttributeCollection $attributes Collection of attributes
 	 * @property WebControlCollection $controls Collection of child controls
 	 * @property WebControlBase $parent parent control
 	 * @property DataSet $dataSource Reference to data-source
 	 * @property mixed $value Control value
-	 * @property EventCollection $events event collection
 	 *
 	 * @package			PHPRum
 	 * @subpackage		Web
 	 * @author			Darnell Shinbine
 	 */
-	abstract class WebControlBase
+	abstract class WebControlBase extends \System\Base\Object
 	{
 		/**
-		 * specifies whether the server control persists its view state, Default is true
+		 * specifies whether the server control persists its view state, Default is false
 		 * @var bool
 		 */
-		protected $enableViewState		= true;
+		protected $enableViewState		= false;
 
 		/**
 		 * determines whether the control is visible, Default is true
@@ -57,18 +53,6 @@
 		protected $ajaxCallback			= '';
 
 		/**
-		 * specifies the name of the ajax event handler javascript function (optional)
-		 * @var string
-		 */
-		protected $ajaxEventHandler		= '';
-
-		/**
-		 * specifies the name of the ajax HTTPRequest object (optional)
-		 * @var string
-		 */
-		protected $ajaxHTTPRequest		= '';
-
-		/**
 		 * collection of arbitrary attributes (for rendering only)
 		 * @var WebControlAttributeCollection
 		 */
@@ -85,12 +69,6 @@
 		 * @var DataSet
 		 */
 		protected $dataSource			= null;
-
-		/**
-		 * event collection
-		 * @var EventCollection
-		 */
-		protected $events				= null;
 
 		/**
 		 * Id of the control
@@ -124,12 +102,10 @@
 
 			// set collections
 			$this->controls = new WebControlCollection( $this );
-			$this->attributes = new WebControlAttributeCollection();
-			$this->events = new \System\Base\EventCollection();
+			$this->attributes = new WebControlAttributeCollection(array('class'=>''));
 
 			// set ajax handlers
 			$this->ajaxCallback	= $_SERVER['PHP_SELF'];
-			$this->ajaxHTTPRequest = 'PHPRum.httpRequestObjects[\'' . strtolower( $this->_controlId ) . 'HTTPRequest\']';
 
 			// set viewstate
 			$this->enableViewState = \System\Web\WebApplicationBase::getInstance()->config->viewStateEnabled;
@@ -138,8 +114,6 @@
 			$this->events->add(new \System\Web\Events\WebControlCreateEvent());
 			$this->events->add(new \System\Web\Events\WebControlInitEvent());
 			$this->events->add(new \System\Web\Events\WebControlLoadEvent());
-			//$this->events->add(new \System\Web\Events\WebControlRequestEvent());
-			//$this->events->add(new \System\Web\Events\WebControlPostEvent());
 			$this->events->add(new \System\Web\Events\WebControlPreRenderEvent());
 
 			$onCreateMethod = 'on'.ucwords($this->controlId).'Create';
@@ -192,18 +166,6 @@
 			{
 				return $this->escapeOutput;
 			}
-			elseif( $field === 'ajaxCallback' )
-			{
-				return $this->ajaxCallback;
-			}
-			elseif( $field === 'ajaxEventHandler' )
-			{
-				return $this->ajaxEventHandler;
-			}
-			elseif( $field === 'ajaxHTTPRequest' )
-			{
-				return $this->ajaxHTTPRequest;
-			}
 			elseif( $field === 'attributes' )
 			{
 				return $this->attributes;
@@ -220,10 +182,6 @@
 			{
 				return $this->dataSource;
 			}
-			elseif( $field === 'events' )
-			{
-				return $this->events;
-			}
 			else
 			{
 				$control = $this->findControl($field);
@@ -233,7 +191,7 @@
 				}
 				else
 				{
-					throw new \System\Base\BadMemberCallException("call to undefined property $field in ".get_class($this));
+					return parent::__get($field);
 				}
 			}
 		}
@@ -261,18 +219,6 @@
 			{
 				$this->escapeOutput = (bool)$value;
 			}
-			elseif( $field === 'ajaxCallback' )
-			{
-				$this->ajaxCallback = (string)$value;
-			}
-			elseif( $field === 'ajaxEventHandler' )
-			{
-				$this->ajaxEventHandler = (string)$value;
-			}
-			elseif( $field === 'ajaxHTTPRequest' )
-			{
-				$this->ajaxHTTPRequest = (string)$value;
-			}
 			elseif( $field === 'dataSource' )
 			{
 				$this->bind($value);
@@ -297,7 +243,7 @@
 			}
 			else
 			{
-				throw new \System\Base\BadMemberCallException("call to undefined property $field in ".get_class($this));
+				parent::__set($field, $value);
 			}
 		}
 
@@ -766,6 +712,7 @@
 		 */
 		final public function getHTMLControlIdString()
 		{
+			trigger_error('WebControlBase::getHTMLControlIdString() is deprecated, use WebControlBase::getHTMLControlId() instead', E_USER_DEPRECATED);
 			return $this->getHTMLControlId();
 		}
 

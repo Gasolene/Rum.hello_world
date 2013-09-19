@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Make;
 
@@ -162,11 +162,6 @@
 					$fields .= "\n\t\t\t'{$columnSchema->name}' => 'numeric'";
 					continue;
 				}
-				elseif( $columnSchema->binary )
-				{
-					$fields .= "\n\t\t\t'{$columnSchema->name}' => 'binary'";
-					continue;
-				}
 				elseif( $columnSchema->blob )
 				{
 					$fields .= "\n\t\t\t'{$columnSchema->name}' => 'blob'";
@@ -185,10 +180,10 @@
 			{
 				$rule = '';
 				if($rules)$rules.=',';
-				if($columnSchema->notNull && !$columnSchema->boolean && !$columnSchema->blob)
-				{
-					$rule .= ($rule?',':'')."'required'";
-				}
+//				if($columnSchema->notNull && !$columnSchema->boolean)
+//				{
+//					$rule .= ($rule?',':'')."'required'";
+//				}
 				if($columnSchema->datetime || $columnSchema->date || $columnSchema->time)
 				{
 					$rule .= ($rule?',':'')."'datetime'";

@@ -19,6 +19,53 @@
 	final class GridViewColumnCollection extends CollectionBase
 	{
 		/**
+		 * GridView
+		 * @var GridView
+		 */
+		protected $gridView;
+
+
+		/**
+		 * Constructor
+		 * 
+		 * @param  mixed	$collection		can be CollectionBase or array used to initialize Collection
+		 * @return void
+		 */
+		public function __construct(GridView &$gridView, $collection = null )
+		{
+			parent::__construct($collection);
+			$this->gridView = &$gridView;
+		}
+
+
+		/**
+		 * sets object property
+		 *
+		 * @param  string	$field		name of field
+		 * @param  mixed	$value		value of field
+		 * @return void					string of variables
+		 * @ignore
+		 */
+		public function __set( $field, $value )
+		{
+			if( $field === 'ajaxPostBack' )
+			{
+				foreach($this->items as $item)
+				{
+					if($item instanceof GridViewControlBase)
+					{
+						$item->ajaxPostBack = (bool)$value;
+					}
+				}
+			}
+			else
+			{
+				return parent::__get($field);
+			}
+		}
+
+
+		/**
 		 * implement ArrayAccess methods
 		 * @ignore
 		 */
@@ -28,6 +75,7 @@
 			{
 				if( $item instanceof GridViewColumn )
 				{
+					$item->setGridView($this->gridView);
 					$this->items[$index] = $item;
 				}
 				else
@@ -59,6 +107,7 @@
 				{
 					if( $this->items[$i]->dataField==$datafield )
 					{
+						$item->setGridView($this->gridView);
 						$new_items[] = $item;
 					}
 					$new_items[] = $this->items[$i];
@@ -83,6 +132,7 @@
 		{
 			if( $item instanceof GridViewColumn )
 			{
+				$item->setGridView($this->gridView);
 				array_push( $this->items, $item );
 			}
 			else
@@ -110,11 +160,11 @@
 		 *
 		 * @return void
 		 */
-		final public function onLoad()
+		final public function load()
 		{
 			foreach($this->items as $column)
 			{
-				$column->onLoad();
+				$column->load();
 			}
 		}
 
@@ -125,11 +175,40 @@
 		 * @param  array	&$request	request data
 		 * @return void
 		 */
-		final public function onRequest( &$request )
+		final public function requestProcessor( &$request )
 		{
 			foreach($this->items as $column)
 			{
-				$column->onRequest( $request );
+				$column->requestProcessor( $request );
+			}
+		}
+
+
+		/**
+		 * reset filters
+		 *
+		 * @return void
+		 */
+		final public function resetFilters()
+		{
+			foreach($this->items as $column)
+			{
+				$column->resetFilter();
+			}
+		}
+
+
+		/**
+		 * filter DataSet
+		 *
+		 * @param  DataSet	&$ds		DataSet
+		 * @return void
+		 */
+		final public function filterDataSet(\System\DB\DataSet &$ds )
+		{
+			foreach($this->items as $column)
+			{
+				$column->filterDataSet($ds);
 			}
 		}
 
@@ -140,11 +219,11 @@
 		 * @param  array	&$request	request data
 		 * @return void
 		 */
-		final public function onPost( &$request )
+		final public function handlePostEvents( &$request )
 		{
 			foreach($this->items as $column)
 			{
-				$column->onPost( $request );
+				$column->handlePostEvents( $request );
 			}
 		}
 
@@ -154,11 +233,11 @@
 		 *
 		 * @return void
 		 */
-		final public function onRender()
+		final public function render()
 		{
 			foreach($this->items as $column)
 			{
-				$column->onRender();
+				$column->render();
 			}
 		}
 

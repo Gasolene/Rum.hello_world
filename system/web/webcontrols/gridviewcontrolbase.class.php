@@ -11,8 +11,11 @@
 	/**
 	 * Represents a GridView control
 	 *
+	 * @property string $parameter specifies the request parameter
+	 * @property string $pkey specifies the primary key field
 	 * @property bool $ajaxPostBack specifies whether to perform ajax postback on change, Default is false
 	 * @property bool $escapeOutput Specifies whether to escape the output
+	 * @property string $tooltip Specifies control tooltip
 	 *
 	 * @package			PHPRum
 	 * @subpackage		Web
@@ -21,13 +24,13 @@
 	abstract class GridViewControlBase extends GridViewColumn
 	{
 		/**
-		 * event request parameter
+		 * request parameter
 		 * @var string
 		 */
 		protected $parameter				= '';
 
 		/**
-		 * primary key
+		 * primary key field
 		 * @var string
 		 */
 		protected $pkey						= '';
@@ -45,10 +48,10 @@
 		protected $escapeOutput				= true;
 
 		/**
-		 * params
+		 * specifies control tool tip
 		 * @var string
 		 */
-		private $_params					= '';
+		protected $tooltip					= '';
 
 		/**
 		 * post back
@@ -71,20 +74,16 @@
 		 * @param  string		$headerText			header text
 		 * @param  string		$footerText			footer text
 		 * @param  string		$className			css class name
+		 * @param  string		$tooltip			toolstip
 		 * @return void
 		 */
-		public function __construct( $dataField, $pkey, $parameter='', $headerText='', $footerText='', $className='' )
+		public function __construct( $dataField, $pkey, $parameter='', $headerText='', $footerText='', $className='', $tooltip='' )
 		{
-			$this->parameter=$parameter?$parameter:str_replace(" ","_",$dataField);
-			$this->pkey = $pkey;
-
 			parent::__construct( $dataField, $headerText, '', $footerText, $className );
 
-			$ajaxPostEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'AjaxPost';
-			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $ajaxPostEvent))
-			{
-				$this->ajaxPostBack = true;
-			}
+			$this->parameter = $parameter?$parameter:str_replace(" ","_",$dataField);
+			$this->pkey = $pkey;
+			$this->tooltip = $tooltip;
 
 			// event handling
 			$this->events->add(new \System\Web\Events\GridViewColumnPostEvent());
@@ -92,13 +91,15 @@
 
 			// default events
 			$postEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'Post';
+			$ajaxPostEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'AjaxPost';
+
 			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $postEvent))
 			{
 				$this->events->registerEventHandler(new \System\Web\Events\GridViewColumnPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $postEvent));
 			}
-
-			if($this->ajaxPostBack)
+			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $ajaxPostEvent))
 			{
+				$this->ajaxPostBack = true;
 				$this->events->registerEventHandler(new \System\Web\Events\GridViewColumnAjaxPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $ajaxPostEvent));
 			}
 		}
@@ -112,11 +113,20 @@
 		 * @ignore
 		 */
 		public function __get( $field ) {
-			if( $field === 'ajaxPostBack' ) {
+			if( $field === 'parameter' ) {
+				return $this->parameter;
+			}
+			elseif( $field === 'pkey' ) {
+				return $this->pkey;
+			}
+			elseif( $field === 'ajaxPostBack' ) {
 				return $this->ajaxPostBack;
 			}
 			elseif( $field === 'escapeOutput' ) {
 				return $this->escapeOutput;
+			}
+			elseif( $field === 'tooltip' ) {
+				return $this->tooltip;
 			}
 			else {
 				return parent::__get($field);
@@ -133,11 +143,20 @@
 		 * @ignore
 		 */
 		public function __set( $field, $value ) {
-			if( $field === 'ajaxPostBack' ) {
+			if( $field === 'parameter' ) {
+				$this->parameter = (string)$value;
+			}
+			elseif( $field === 'pkey' ) {
+				$this->pkey = (string)$value;
+			}
+			elseif( $field === 'ajaxPostBack' ) {
 				$this->ajaxPostBack = (bool)$value;
 			}
 			elseif( $field === 'escapeOutput' ) {
 				$this->escapeOutput = (bool)$value;
+			}
+			elseif( $field === 'tooltip' ) {
+				$this->tooltip = (string)$value;
 			}
 			else {
 				parent::__set( $field, $value );
@@ -153,11 +172,18 @@
 		 */
 		public function onRequest( &$request )
 		{
-			if( isset( $request[$this->parameter] ))
+			$parameter = $this->formatParameter($this->parameter);
+			if( isset( $request[$parameter] ))
 			{
+				$pkey = $this->formatParameter($this->pkey);
+
 				$this->_handlePostBack = true;
-				$this->_args = $request;
-				unset( $request[$this->parameter] );
+				$this->_args[$this->parameter] = $request[$parameter];
+				unset( $request[$parameter] );
+				if(isset($request[$pkey])) {
+					$this->_args[$this->pkey] = $request[$pkey];
+					unset($request[$pkey]);
+				}
 			}
 		}
 
@@ -172,8 +198,6 @@
 		{
 			if( $this->_handlePostBack )
 			{
-				$args = $request;
-
 				if($this->ajaxPostBack && \Rum::app()->requestHandler->isAjaxPostBack)
 				{
 					$this->events->raise(new \System\Web\Events\GridViewColumnAjaxPostEvent(), $this, $this->_args);
@@ -194,8 +218,27 @@
 		 */
 		public function onRender()
 		{
-			$params = $this->getRequestData() . "&{$this->pkey}='.\\rawurlencode(%{$this->pkey}%).'";
-			$this->itemText = $this->getItemText($this->dataField, $this->parameter, $params);
+			$this->itemText = $this->getItemText($this->dataField, $this->formatParameter($this->parameter));
+			$this->footerText = $this->getFooterText($this->dataField, $this->formatParameter($this->parameter));
+		}
+
+
+		/**
+		 * format parameter
+		 * 
+		 * @param string $parameter parameter to format
+		 * @return string
+		 */
+		final protected function formatParameter( $parameter )
+		{
+			$parameter = str_replace( ' ', '_', (string)$parameter );
+			$parameter = str_replace( '\'', '_', $parameter );
+			$parameter = str_replace( '"', '_', $parameter );
+			$parameter = str_replace( '/', '_', $parameter );
+			$parameter = str_replace( '\\', '_', $parameter );
+			$parameter = str_replace( '.', '_', $parameter );
+
+			return $parameter;
 		}
 
 
@@ -221,11 +264,20 @@
 		/**
 		 * get item text
 		 *
-		 * @param string $dataField
-		 * @param string $parameter
-		 * @param string $params
+		 * @param string $dataField datafield of the current row
+		 * @param string $parameter parameter to send
 		 * @return string
 		 */
-		abstract protected function getItemText($dataField, $parameter, $params);
+		abstract protected function getItemText($dataField, $parameter);
+
+
+		/**
+		 * get footer text
+		 *
+		 * @param string $parameter parameter to send
+		 * @param string $parameter parameter to send
+		 * @return string
+		 */
+		abstract protected function getFooterText($dataField, $parameter);
 	}
 ?>

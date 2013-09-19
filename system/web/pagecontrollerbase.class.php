@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web;
 
@@ -52,6 +52,19 @@
 
 
 		/**
+		 * Constructor
+		 *
+		 * @param   string		$controllerId	Controller Id
+		 * @return  void
+		 * /
+		final public function __construct( $controllerId )
+		{
+			parent::__construct($controllerId);
+			$this->events->add(new Events\TimerEvent());
+		}
+
+
+		/**
 		 * gets object property
 		 *
 		 * @param  string	$field		name of field
@@ -60,23 +73,7 @@
 		 */
 		final public function __get( $field )
 		{
-			if( $field === 'controllerId' )
-			{
-				return (string)$this->controllerId;
-			}
-			elseif( $field === 'outputCache' )
-			{
-				return (int)$this->outputCache;
-			}
-			elseif( $field === 'allowRoles' )
-			{
-				return $this->allowRoles;
-			}
-			elseif( $field === 'denyRoles' )
-			{
-				return $this->denyRoles;
-			}
-			elseif( $field === 'isPostBack' )
+			if( $field === 'isPostBack' )
 			{
 				return (bool)$this->isPostBack;
 			}
@@ -92,10 +89,6 @@
 			{
 				return $this->theme;
 			}
-			elseif( $field === 'events' )
-			{
-				return $this->events;
-			}
 			else
 			{
 				if( $this->page )
@@ -106,15 +99,9 @@
 					{
 						return $control;
 					}
-					else
-					{
-						throw new \System\Base\BadMemberCallException("call to undefined property $field in ".get_class($this));
-					}
 				}
-				else
-				{
-					throw new \System\Base\BadMemberCallException("call to undefined property $field in ".get_class($this));
-				}
+
+				return parent::__get($field);
 			}
 		}
 
@@ -139,6 +126,12 @@
 		 */
 		public function getView( \System\Web\HTTPRequest &$request )
 		{
+//			$method = 'onTimer';
+//			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $method))
+//			{
+//				$this->events->registerEventHandler(new \System\Web\Events\TimerEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $method));
+//			}
+
 			$this->theme = $this->theme?$this->theme:\System\Web\WebApplicationBase::getInstance()->config->defaultTheme;
 
 			if(\System\Web\WebApplicationBase::getInstance()->config->viewStateMethod == 'cookies')
@@ -173,9 +166,12 @@
 			// include jscripts
 			if( \System\Web\WebApplicationBase::getInstance()->config->state == \System\Base\AppState::Debug() )
 			{
-				$this->page->addScript( WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=web/debug.js' );
-				$this->page->addLink( WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . '&asset=web/debug.css' );
+				$this->page->addScript( WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=debug_tools/debug.js' );
+				$this->page->addLink( WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . '&asset=debug_tools/debug.css' );
 			}
+
+			$this->page->addScript( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=rum.js' );
+			$this->page->onload .= 'Rum.init(\''.__ASYNC_REQUEST_PARAMETER__.'\', '.__VALIDATION_TIMEOUT__.');';
 
 			// include all css files for theme
 			foreach( (array)glob( \System\Web\WebApplicationBase::getInstance()->config->htdocs . substr( \System\Web\WebApplicationBase::getInstance()->config->themes, strlen( \System\Web\WebApplicationBase::getInstance()->config->uri )) . '/' . $this->theme . "/*.css" ) as $stylesheet )
@@ -288,7 +284,6 @@
 					. '_masterviewstate'] = serialize( $viewStateArray );
 			}
 
-
 			$config = \System\Web\WebApplicationBase::getInstance()->config;
 			if($config->viewStateMethod == 'cookies')
 			{
@@ -307,31 +302,24 @@
 
 				if(\System\Web\WebApplicationBase::getInstance()->messages->count>0)
 				{
-					$this->page->loadAjaxJScriptBuffer("var ul = document.getElementById('messages');");
-					//$this->page->loadAjaxJScriptBuffer("if(ul){if(ul.hasChildNodes()){while(ul.childNodes.length>=1){ul.removeChild(ul.firstChild);}}}");
-
 					foreach(\System\Web\WebApplicationBase::getInstance()->messages as $msg)
 					{
-						$id = 'm'.uniqid();
-						$this->page->loadAjaxJScriptBuffer("var li = document.createElement('li');");
-						$this->page->loadAjaxJScriptBuffer("li.setAttribute('id', '{$id}');");
-						$this->page->loadAjaxJScriptBuffer("li.setAttribute('class', '".\strtolower($msg->type)."');");
-						$this->page->loadAjaxJScriptBuffer("li.setAttribute('onclick', 'PHPRum.fadeOut(this);this.onclick=null;');");
-						$this->page->loadAjaxJScriptBuffer("li.style.display='none';");
-						$this->page->loadAjaxJScriptBuffer("li.innerHTML = '".\str_replace("\n", '', \str_replace("\r", '', \nl2br(\addslashes($msg->message))))."';");
-						$this->page->loadAjaxJScriptBuffer("if(ul){ul.appendChild(li);PHPRum.fadeIn(document.getElementById('{$id}'));}");
+						$this->page->loadAjaxJScriptBuffer("Rum.flash( '".\str_replace("\n", '', \str_replace("\r", '', \nl2br(\addslashes($msg->message))))."', '".\strtolower($msg->type)."');");
 					}
-
-					\System\Web\WebApplicationBase::getInstance()->messages->removeAll();
 				}
 
 				if(\System\Web\WebApplicationBase::getInstance()->forwardURI)
 				{
 					$url = \System\Web\WebApplicationBase::getInstance()->getPageURI( \System\Web\WebApplicationBase::getInstance()->forwardURI, \System\Web\WebApplicationBase::getInstance()->forwardParams );
-					$this->page->loadAjaxJScriptBuffer("location.href='".$url."';");
+					$this->page->loadAjaxJScriptBuffer("Rum.forward('".$url."');");
+				}
 
-					// clear forward
-					\System\Web\WebApplicationBase::getInstance()->clearForwardPage();
+				if(\System\Web\WebApplicationBase::getInstance()->trace)
+				{
+					foreach(\System\Web\WebApplicationBase::getInstance()->trace as $trace)
+					{
+						$this->page->loadAjaxJScriptBuffer("console.log('".\str_replace("\n", '', \str_replace("\r", '', \nl2br(\addslashes($trace))))."');");
+					}
 				}
 
 				// replace output with ajax buffer output

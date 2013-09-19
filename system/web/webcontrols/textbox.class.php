@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -11,15 +11,11 @@
 	/**
 	 * Represents a TextBox Control
 	 *
-	 * @property bool $multiline Specifies whether textbox will accept multiple lines of text
 	 * @property bool $mask Specifies whether to characters will be masked
 	 * @property int $maxLength Specifies Max Length of value when defined
 	 * @property bool $disableAutoComplete Specifies whether to disable the browsers auto complete feature
 	 * @property bool $disableEnterKey Specifies whether to disable the enter key
-	 * @property int $size Specifies the size of a textbox
-	 * @property int $rows Specifies that number of rows in multiline textbox
-	 * @property int $cols Specifies that number of columns in multiline textbox
-	 * @property string $watermark Specifies an optional watermark that is displayed when the control is empty
+	 * @property string $placeholder Specifies the text for the placeholder attribute
 	 *
 	 * @package			PHPRum
 	 * @subpackage		Web
@@ -28,10 +24,10 @@
 	class TextBox extends InputBase
 	{
 		/**
-		 * Specifies whether textbox will accept multiple lines of text, default is false
-		 * @var bool
+		 * Specifies the size of a textbox, default is 30
+		 * @var int
 		 */
-		protected $multiline				= false;
+		protected $size						= 30;
 
 		/**
 		 * Specifies whether to characters will be masked, default is false
@@ -58,28 +54,10 @@
 		protected $disableEnterKey			= false;
 
 		/**
-		 * Specifies the size of a textbox, default is 30
-		 * @var int
-		 */
-		protected $size						= 30;
-
-		/**
-		 * Specifies that number of rows in multiline textbox, default is 5
-		 * @var int
-		 */
-		protected $rows						= 5;
-
-		/**
-		 * Specifies that number of columns in multiline textbox, default is 60
-		 * @var int
-		 */
-		protected $cols						= 60;
-
-		/**
-		 * Specifies an optional watermark that is displayed when the control is empty
+		 * Specifies the text for the placeholder attribute
 		 * @var string
 		 */
-		protected $watermark				= '';
+		protected $placeholder				= '';
 
 
 		/**
@@ -90,8 +68,8 @@
 		 * @ignore
 		 */
 		public function __get( $field ) {
-			if( $field === 'multiline' ) {
-				return $this->multiline;
+			if( $field === 'size' ) {
+				return $this->size;
 			}
 			elseif( $field === 'mask' ) {
 				return $this->mask;
@@ -105,17 +83,8 @@
 			elseif( $field === 'disableEnterKey' ) {
 				return $this->disableEnterKey;
 			}
-			elseif( $field === 'size' ) {
-				return $this->size;
-			}
-			elseif( $field === 'rows' ) {
-				return $this->rows;
-			}
-			elseif( $field === 'cols' ) {
-				return $this->cols;
-			}
-			elseif( $field === 'watermark' ) {
-				return $this->watermark;
+			elseif( $field === 'placeholder' ) {
+				return $this->placeholder;
 			}
 			else {
 				return parent::__get( $field );
@@ -132,8 +101,8 @@
 		 * @ignore
 		 */
 		public function __set( $field, $value ) {
-			if( $field === 'multiline' ) {
-				$this->multiline = (bool)$value;
+			if( $field === 'size' ) {
+				$this->size = (int)$value;
 			}
 			elseif( $field === 'mask' ) {
 				$this->mask = (bool)$value;
@@ -147,17 +116,14 @@
 			elseif( $field === 'disableEnterKey' ) {
 				$this->disableEnterKey = (bool)$value;
 			}
-			elseif( $field === 'size' ) {
-				$this->size = (int)$value;
-			}
-			elseif( $field === 'rows' ) {
-				$this->rows = (int)$value;
-			}
-			elseif( $field === 'cols' ) {
-				$this->cols = (int)$value;
+			elseif( $field === 'placeholder' ) {
+				$this->placeholder = (string)$value;
 			}
 			elseif( $field === 'watermark' ) {
-				$this->watermark = (string)$value;
+				trigger_error('TextBox::watermark is deprecated, use TextBox::placeholder instead', E_USER_DEPRECATED);
+			}
+			elseif( $field === 'multiline' ) {
+				trigger_error('TextBox::multiline is deprecated, use TextArea instead', E_USER_DEPRECATED);
 			}
 			else {
 				parent::__set($field,$value);
@@ -187,110 +153,36 @@
 		 */
 		public function getDomObject()
 		{
-			$input = null;
+			trigger_error("TextBox is deprecated, use Text", E_USER_DEPRECATED);
+			$input = $this->getInputDomObject();
+			$input->setAttribute( 'size', $this->size );
+			$input->appendAttribute( 'class', ' textbox' );
 
-			// create widget
-			if( $this->multiline )
+			if(!is_null($this->value) && !$this->mask)
 			{
-				$textarea = $this->createDomObject( 'textarea' );
-				$textarea->setAttribute( 'name', $this->getHTMLControlId() );
-				$textarea->setAttribute( 'id', $this->getHTMLControlId() );
-				$textarea->appendAttribute( 'class', ' textbox' );
-				$textarea->setAttribute( 'cols', $this->cols );
-				$textarea->setAttribute( 'rows', $this->rows );
-				$textarea->setAttribute( 'title', $this->tooltip );
-				if(!$this->mask) $textarea->nodeValue = $this->value;
-
-				if( $this->submitted && !$this->validate() )
-				{
-					$textarea->appendAttribute( 'class', ' invalid' );
-				}
-
-				if( $this->autoPostBack )
-				{
-					$textarea->appendAttribute( 'onchange', 'document.getElementById(\''.$this->getParentByType( '\System\Web\WebControls\Form')->getHTMLControlId().'\').submit();' );
-				}
-
-				if( $this->ajaxPostBack )
-				{
-					$textarea->appendAttribute( 'onchange', $this->ajaxHTTPRequest . ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' );' );
-				}
-
-				if( $this->ajaxValidation )
-				{
-					$textarea->appendAttribute( 'onfocus', 'PHPRum.resetValidationTimer('.__VALIDATION_TIMEOUT__.');' );
-					$textarea->appendAttribute( 'onchange', $this->ajaxHTTPRequest .                                     ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'__validate=1&'.$this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' );' );
-					$textarea->appendAttribute( 'onkeyup',  'if(PHPRum.isValidationReady() && PHPRum.hasText(document.getElementById(\''.$this->getHTMLControlId().'__err\'))){' . $this->ajaxHTTPRequest . ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'__validate=1&'.$this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' ); PHPRum.resetValidationTimer('.__VALIDATION_TIMEOUT__.');}' );
-					$textarea->appendAttribute( 'onblur',  $this->ajaxHTTPRequest .                                      ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'__validate=1&'.$this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' ); PHPRum.resetValidationTimer('.__VALIDATION_TIMEOUT__.');' );
-				}
-
-				if( $this->readonly )
-				{
-					$textarea->setAttribute( 'readonly', 'readonly' );
-				}
-
-				if( $this->disabled )
-				{
-					$textarea->setAttribute( 'disabled', 'disabled' );
-				}
-
-				if( !$this->visible )
-				{
-					$textarea->setAttribute( 'style', 'display: none;' );
-				}
-
-				if( $this->maxLength )
-				{
-					// KLUDGY: -2 is bug fix
-					$textarea->appendAttribute( 'onkeyup', 'if(this.value.length > '.(int)($this->maxLength-2).'){ alert(\'You have exceeded the maximum number of characters allowed\'); this.value = this.value.substring(0, '.(int)($this->maxLength-2).') }' );
-				}
-
-				$input =& $textarea;
+				$input->setAttribute( 'value', $this->value );
 			}
-			else
+
+			if( $this->ajaxPostBack || $this->ajaxValidation )
 			{
-				$input = $this->getInputDomObject();
-				$input->setAttribute( 'size', $this->size );
-				$input->appendAttribute( 'class', ' textbox' );
+				$input->appendAttribute( 'onkeyup', 'if(Rum.isReady(\''.$this->getHTMLControlId().'__err\')){' . 'Rum.evalAsync(\'' . $this->ajaxCallback . '\',\'' . $this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\',\'POST\');}' );
+			}
 
-				if(!is_null($this->value) && !$this->mask)
+			if( $this->visible )
+			{
+				if( $this->mask )
 				{
-					$input->setAttribute( 'value', $this->value );
+					$input->setAttribute( 'type', 'password' );
 				}
-				elseif($this->watermark)
+				else
 				{
-					$input->appendAttribute( 'class', ' watermark' );
-					$input->setAttribute( 'value', $this->watermark );
+					$input->setAttribute( 'type', 'text' );
 				}
+			}
 
-				if( $this->ajaxPostBack )
-				{
-					$input->appendAttribute( 'onkeyup',  'if(PHPRum.isValidationReady()){' . $this->ajaxHTTPRequest . ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' ); PHPRum.resetValidationTimer('.__VALIDATION_TIMEOUT__.');}' );
-				}
-
-				if($this->watermark)
-				{
-					$input->appendAttribute( 'onchange', "PHPRum.textboxUpdateWatermark(this, '".\addslashes($this->watermark)."');" );
-					$input->appendAttribute( 'onblur', "PHPRum.textboxUpdateWatermark(this, '".\addslashes($this->watermark)."');" );
-					$input->appendAttribute( 'onclick', "if(this.value=='{$this->watermark}'){this.value='';}" );
-				}
-
-				if( $this->visible )
-				{
-					if( $this->mask )
-					{
-						$input->setAttribute( 'type', 'password' );
-					}
-					else
-					{
-						$input->setAttribute( 'type', 'text' );
-					}
-				}
-
-				if( $this->maxLength )
-				{
-					$input->setAttribute( 'maxlength', (int)$this->maxLength );
-				}
+			if( $this->maxLength )
+			{
+				$input->setAttribute( 'maxlength', (int)$this->maxLength );
 			}
 
 			if( $this->disableEnterKey )
@@ -300,50 +192,15 @@
 
 			if( $this->disableAutoComplete )
 			{
-				$input->setAttribute( 'autocomplete', 'off' ); // not xhtml compliant
+				$input->setAttribute( 'autocomplete', 'off' );
+			}
+
+			if( $this->placeholder )
+			{
+				$input->setAttribute( 'placeholder', $this->placeholder );
 			}
 
 			return $input;
-		}
-
-
-		/**
-		 * called when control is loaded
-		 *
-		 * @return bool			true if successfull
-		 */
-		protected function onLoad()
-		{
-			parent::onLoad();
-
-			if( !$this->tooltip )
-			{
-				$this->tooltip = $this->watermark;
-			}
-
-			$page = $this->getParentByType( '\System\Web\WebControls\Page' );
-
-			if( $page )
-			{
-				$page->addScript( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=/textbox/textbox.js' );
-			}
-		}
-
-
-		/**
-		 * process the HTTP request array
-		 *
-		 * @param  object	$request	HTTPRequest Object
-		 * @return void
-		 */
-		protected function onRequest( array &$request )
-		{
-			parent::onRequest( $request );
-
-			if( $this->value == $this->watermark )
-			{
-				$this->value = '';
-			}
 		}
 	}
 ?>

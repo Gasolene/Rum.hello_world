@@ -2,8 +2,8 @@
 	/**
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
-	 *
-	 *
+	 * @author			Darnell Shinbine
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -24,7 +24,7 @@
 	 * @property bool $ajaxPostBack specifies whether to perform ajax postback, Default is false
 	 * @property bool $ajaxValidation specifies whether to perform ajax validation, Default is false
 	 * @property bool $autoFocus specifies whether to auto focus
-	 * @property bool $hiddenField specifies whether to check for hidden honeypot field before processing request
+	 * @property string $honeyPot specifies the content of the honeypot field
 	 * @property string $submitted specifies if form was submitted
 	 * @property RequestParameterCollection $parameters form parameters
 	 *
@@ -84,10 +84,10 @@
 		protected $ajaxValidation		= false;
 
 		/**
-		 * specifies whether to check for hidden honeypot field before processing request
+		 * specifies whether to check for hidden field before processing request
 		 * @var bool
 		 */
-		protected $hiddenField			= false;
+		protected $honeyPot			= false;
 
 		/**
 		 * set if the form was submitted
@@ -196,7 +196,11 @@
 			}
 			elseif( $field === 'hiddenField' )
 			{
-				$this->hiddenField = (string)$value;
+				$this->honeyPot = (string)$value;
+			}
+			elseif( $field === 'honeyPot' )
+			{
+				$this->honeyPot = (string)$value;
 			}
 			elseif( $field === 'onPost' )
 			{
@@ -250,9 +254,9 @@
 			{
 				return $this->ajaxValidation;
 			}
-			elseif( $field === 'hiddenField' )
+			elseif( $field === 'honeyPot' )
 			{
-				return $this->hiddenField;
+				return $this->honeyPot;
 			}
 			elseif( $field === 'onPost' )
 			{
@@ -261,6 +265,19 @@
 			elseif( $field === 'submitted' )
 			{
 				return $this->submitted;
+			}
+			elseif( $field === 'submit' )
+			{
+				if(null===$this->findControl('submit')) {
+					trigger_error("ActiveRecordBase::form()->submit is deprecated, no longer generates a submit button", E_USER_DEPRECATED);
+					try {
+						$this->add(new Button('submit'));
+					}
+					catch(\Exception $e) {
+						throw new \System\Base\InvalidOperationException("ActiveRecordBase::form()->submit is no longer generated");
+					}
+				}
+				return $this->findControl('submit');
 			}
 			else
 			{
@@ -277,14 +294,15 @@
 		 */
 		final public function add( WebControlBase $control )
 		{
-			if( $control instanceof InputBase || $control instanceof Fieldset )
-			{
-				return parent::addControl($control);
-			}
-			else
-			{
-				throw new \System\Base\InvalidArgumentException("Argument 1 passed to ".get_class($this)."::add() must be an object of type InputBase or Fieldset");
-			}
+			return parent::addControl($control);
+//			if( $control instanceof InputBase || $control instanceof Fieldset )
+//			{
+//				return parent::addControl($control);
+//			}
+//			else
+//			{
+//				throw new \System\Base\InvalidArgumentException("Argument 1 passed to ".get_class($this)."::add() must be an object of type InputBase or Fieldset");
+//			}
 		}
 
 
@@ -567,7 +585,7 @@
 				}
 			}
 
-			if( $this->hiddenField )
+			if( $this->honeyPot )
 			{
 				$hiddenElements .= "<div class=\"hp\"><input type=\"text\" name=\"".GOTCHAFIELD."\" /></div>";
 			}
@@ -587,18 +605,10 @@
 		{
 			parent::onLoad();
 
-			$page = $this->getParentByType('\System\Web\WebControls\Page');
-			$page->addScript( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=/form/form.js' );
-
-			if($this->hiddenField)
-			{
-				$page->addLink( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . '&asset=/form/form.css' );
-			}
-
 			// perform ajax request
 			if( $this->ajaxPostBack )
 			{
-				$this->_onsubmit = "return PHPRum.submitForm(this, " . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'PHPRum.evalFormResponse);' );
+				$this->_onsubmit = "return Rum.submit(this, " . ( 'Rum.evalFormResponse);' );
 			}
 		}
 
@@ -613,7 +623,7 @@
 		{
 			if( isset( $request[ $this->getHTMLControlId() . '__submit'] ))
 			{
-				if( $this->hiddenField )
+				if( $this->honeyPot )
 				{
 					if( isset( $request[GOTCHAFIELD] )?!$request[GOTCHAFIELD]:false )
 					{
@@ -636,29 +646,6 @@
 				// auto focus first control
 				$childControl = $this->controls[0];
 				$childControl->focus();
-			}
-
-			if( $this->ajaxPostBack && $this->submitted )
-			{
-				$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("");
-/**
-				if($this->autoFocus)
-				{
-					$this->validate($errMsg);
-
-					foreach( $this->controls as $childControl )
-					{
-						if( $childControl instanceof InputBase )
-						{
-							if( $childControl->focus )
-							{
-								$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("document.getElementById('{$childControl->getHTMLControlId()}').focus()");
-								break;
-							}
-						}
-					}
-				}
- */
 			}
 		}
 

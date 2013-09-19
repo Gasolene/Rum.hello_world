@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -302,7 +302,7 @@
 		 */
 		final public function focus()
 		{
-			$this->getParentByType( '\System\Web\WebControls\Page' )->onload .= 'document.getElementById(\'' . $this->defaultHTMLControlId . '\').focus();';
+			$this->getParentByType( '\System\Web\WebControls\Page' )->onload .= 'Rum.id(\'' . $this->defaultHTMLControlId . '\').focus();';
 		}
 
 
@@ -441,20 +441,12 @@
 
 			if( $this->autoPostBack )
 			{
-				$input->appendAttribute( 'onchange', 'document.getElementById(\''.$this->getParentByType( '\System\Web\WebControls\Form')->getHTMLControlId().'\').submit();' );
+				$input->appendAttribute( 'onchange', 'Rum.id(\''.$this->getParentByType( '\System\Web\WebControls\Form')->getHTMLControlId().'\').submit();' );
 			}
 
-			if( $this->ajaxPostBack )
+			if( $this->ajaxPostBack || $this->ajaxValidation )
 			{
-				$input->appendAttribute( 'onchange', $this->ajaxHTTPRequest . ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' );' );
-			}
-
-			if( $this->ajaxValidation )
-			{
-				$input->appendAttribute( 'onfocus', 'PHPRum.resetValidationTimer('.__VALIDATION_TIMEOUT__.');' );
-				$input->appendAttribute( 'onchange', $this->ajaxHTTPRequest .                                     ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'__validate=1&'.$this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' );' );
-				$input->appendAttribute( 'onkeyup',  'if(PHPRum.isValidationReady() && PHPRum.hasText(document.getElementById(\''.$this->getHTMLControlId().'__err\'))){' . $this->ajaxHTTPRequest . ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'__validate=1&'.$this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' ); PHPRum.resetValidationTimer('.__VALIDATION_TIMEOUT__.');}' );
-				$input->appendAttribute( 'onblur',  $this->ajaxHTTPRequest .                                      ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'__validate=1&'.$this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' ); PHPRum.resetValidationTimer('.__VALIDATION_TIMEOUT__.');' );
+				$input->appendAttribute( 'onchange', 'Rum.evalAsync(\'' . $this->ajaxCallback . '\',\'' . $this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\',\'POST\');' );
 			}
 
 			if( $this->readonly )
@@ -564,8 +556,14 @@
 
 			if(( $this->ajaxPostBack || $this->ajaxValidation ) && $this->submitted )
 			{
-				$this->validate($errMsg);
-				$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("if(document.getElementById('{$this->getHTMLControlId()}__err')){PHPRum.setText(document.getElementById('{$this->getHTMLControlId()}__err'), '".\addslashes($errMsg)."')}");
+				if($this->validate($errMsg))
+				{
+					$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.clear('{$this->getHTMLControlId()}');");
+				}
+				else
+				{
+					$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.assert('{$this->getHTMLControlId()}', '".\addslashes($errMsg)."');");
+				}
 			}
 		}
 
@@ -622,7 +620,7 @@
 		 */
 		protected function onUpdateAjax()
 		{
-			$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("document.getElementById('{$this->getHTMLControlId()}').value='$this->value';");
+			$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.id('{$this->getHTMLControlId()}').value='$this->value';");
 		}
 	}
 ?>

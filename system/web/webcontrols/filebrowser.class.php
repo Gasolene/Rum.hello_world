@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -26,6 +26,7 @@
 		public function __construct( $controlId )
 		{
 			parent::__construct( $controlId, '' );
+			trigger_error("FileBrowser is deprecated, use File instead", E_USER_DEPRECATED);
 		}
 
 

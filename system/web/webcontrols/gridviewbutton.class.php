@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -20,46 +20,65 @@
 	class GridViewButton extends GridViewControlBase
 	{
 		/**
-		 * specifies whether column can be filtered
-		 * @var bool
-		 */
-		protected $canFilter				= false;
-
-		/**
 		 * confirmation message
 		 * @var string
 		 */
 		protected $confirmation				= '';
 
 		/**
-		 * button name
+		 * item button name
 		 * @var string
 		 */
-		private $buttonName					= '';
+		private $itemButtonName				= '';
+
+		/**
+		 * footer button name
+		 * @var string
+		 */
+		private $footerButtonName			= '';
 
 
 		/**
 		 * @param  string		$dataField			field name
-		 * @param  string		$buttonName			name of button
-		 * @param  string		$parameter			parameter
+		 * @param  string		$itemButtonName		name of item button
+		 * @param  string		$prameter			item parameter
+		 * @param  string		$confirmation		confirmation text on button click
 		 * @param  string		$headerText			header text
 		 * @param  string		$footerText			footer text
-		 * @param  string		$className			css class name
+		 * @param  string		$className			column CSS class name
+		 * @param  string		$footerButtonName	name of footer button
 		 * @return void
 		 */
-		public function __construct( $dataField, $buttonName='', $parameter = '', $confirmation = '', $headerText='', $footerText='', $className='' )
+		public function __construct( $dataField, $itemButtonName='', $parameter = '', $confirmation = '', $headerText='', $footerText='', $className='', $footerButtonName='' )
 		{
-			$this->buttonName = $buttonName?$buttonName:$dataField;
+			parent::__construct($dataField, $dataField, $parameter, $headerText, $footerText, $className);
+
+			$this->itemButtonName = $itemButtonName?$itemButtonName:$dataField;
+			$this->footerButtonName = $footerButtonName;
 			$this->confirmation = $confirmation;
-			$pkey=$dataField;
 
-			parent::__construct($dataField, $pkey, $parameter, $headerText, $footerText, $className);
+			$clickEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'Click';
+			$AjaxClickEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'AjaxClick';
+			$postEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'Post';
+			$AjaxPostEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'AjaxPost';
 
-			$postEvent='on'.ucwords(str_replace(" ","_",$this->parameter)).'Click';
-			$this->events->add(new \System\Web\Events\GridViewColumnPostEvent());
+			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $clickEvent))
+			{
+				$this->events->registerEventHandler(new \System\Web\Events\GridViewColumnPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $clickEvent));
+			}
+			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $AjaxClickEvent))
+			{
+				$this->ajaxPostBack = true;
+				$this->events->registerEventHandler(new \System\Web\Events\GridViewColumnAjaxPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $AjaxClickEvent));
+			}
 			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $postEvent))
 			{
 				$this->events->registerEventHandler(new \System\Web\Events\GridViewColumnPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $postEvent));
+			}
+			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $AjaxPostEvent))
+			{
+				$this->ajaxPostBack = true;
+				$this->events->registerEventHandler(new \System\Web\Events\GridViewColumnAjaxPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $AjaxPostEvent));
 			}
 		}
 
@@ -100,40 +119,54 @@
 
 
 		/**
-		 * handle post events
-		 *
-		 * @param  array	&$request	request data
-		 * @return void
-		 */
-		public function onPost( &$request )
-		{
-			if( isset( $request[$this->parameter] ))
-			{
-				$this->events->raise(new \System\Web\Events\GridViewColumnPostEvent(), $this, $request);
-			}
-
-			parent::onPost( $request );
-		}
-
-
-		/**
 		 * get item text
 		 *
-		 * @param string $dataField
-		 * @param string $parameter
-		 * @param string $params
+		 * @param string $dataField datafield of the current row
+		 * @param string $parameter parameter to send
 		 * @return string
 		 */
-		protected function getItemText($dataField, $parameter, $params)
+		protected function getItemText($dataField, $parameter)
 		{
 			if( $this->ajaxPostBack )
 			{
-				$params .= "&{$parameter}='.\\rawurlencode(%{$dataField}%).'";
-				return '\'<input type="button" title="'.$this->buttonName.'" value="'.$this->buttonName.'" class="button" onclick="'.($this->confirmation?'if(!confirm(\\\''.\addslashes(\addslashes($this->escape($this->confirmation))).'\\\')){return false;}':'').'PHPRum.httpRequestObjects[\\\''.strtolower($parameter).'HTTPRequest\\\'] = PHPRum.sendHttpRequest(\\\''.\System\Web\WebApplicationBase::getInstance()->config->uri.'/\\\',\\\''.$this->escape($params).'\\\',\\\'POST\\\', function() { PHPRum.evalHttpResponse(\\\'PHPRum.httpRequestObjects[\\\\\\\''.strtolower($parameter).'HTTPRequest\\\\\\\']\\\') } );" />\'';
+				$uri = \System\Web\WebApplicationBase::getInstance()->config->uri;
+				$params = $this->getRequestData() . "&{$parameter}='.\\rawurlencode(%{$dataField}%).'";
+				return "'<input name=\"{$parameter}\" type=\"button\" title=\"{$this->itemButtonName}\" value=\"'.%{$dataField}%.'\" class=\"button\" onclick=\"".($this->confirmation?'if(!confirm(\\\''.\addslashes(\addslashes($this->escape($this->confirmation)))."\\')){return false;}":"")."Rum.evalAsync(\'{$uri}/\',\'".$this->escape($params)."\',\'POST\');\" />'";
 			}
 			else
 			{
-				return "'<input type=\"button\" title=\"{$this->buttonName}\" value=\"{$this->buttonName}\" class=\"button\" onclick=\"".($this->confirmation?'if(!confirm(\\\''.\addslashes(\addslashes($this->escape($this->confirmation))).'\\\')){return false;}':'')."PHPRum.sendPostBack(\\'".\System\Web\WebApplicationBase::getInstance()->config->uri."\\', \\'".$this->escape($this->getRequestData())."&amp;{$parameter}='.%{$dataField}%.'\\', \\'POST\\');\" />'";
+				return "'<input name=\"{$parameter}\" type=\"submit\" title=\"{$this->itemButtonName}\" value=\"'.%{$dataField}%.'\" class=\"button\" onclick=\"".($this->confirmation?'if(!confirm(\\\''.\addslashes(\addslashes($this->escape($this->confirmation)))."\\')){return false;}":"")."\" />'";
+			}
+		}
+
+		/**
+		 * get footer text
+		 *
+		 * @param string $dataField datafield of the current row
+		 * @param string $parameter parameter to send
+		 * @return string
+		 */
+		protected function getFooterText($dataField, $parameter)
+		{
+			if( !$this->footerText )
+			{
+				if( $this->footerButtonName )
+				{
+					if( $this->ajaxPostBack )
+					{
+						$uri = \System\Web\WebApplicationBase::getInstance()->config->uri;
+						$params = $this->getRequestData() . "&{$parameter}=null";
+						return "'<input name=\"{$parameter}\" value=\"null\" type=\"button\" title=\"{$this->footerButtonName}\" class=\"button\" onclick=\"Rum.evalAsync(\'{$uri}/\',\'".$this->escape($params)."\',\'POST\');\" />'";
+					}
+					else
+					{
+						return "'<input name=\"{$parameter}\" value=\"null\" type=\"submit\" title=\"{$this->footerButtonName}\" class=\"button\" />'";
+					}
+				}
+			}
+			else
+			{
+				return $this->footerText;
 			}
 		}
 	}

@@ -55,11 +55,6 @@ table tbody tr.row_alt td {
 	/* white-space: nowrap; */
 }
 
-.gridview tfoot a,
-.gridview tfoot span {
-  padding-left: 4px;
-}
-
 .gridview .move_up {
 	display: block;
 	text-indent: -3000px;

@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
     namespace System\Make;
 
@@ -21,6 +21,7 @@
 		 * @var string
 		 */
 		const ControllerNamespace       = '\\Controllers';
+
 		/**
 		 * Default namespace
 		 * @var string
@@ -79,7 +80,7 @@
 		 * @param  EventArgs \$args Event args
 		 * @return void
 		 */
-		public function onEdit_".ucwords($field)."AjaxPost(\$sender, \$args)
+		public function onEdit_".ucwords(str_replace(' ', '_', $field))."AjaxPost(\$sender, \$args)
 		{
 			\${$controlName}Record = {$objectName}::findById(\$args[\"{$pkey}\"]);
 

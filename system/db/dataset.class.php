@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\DB;
 	use \System\Base\ModelBase;
@@ -1297,14 +1297,8 @@
 				$xmlFieldBoolean = new \System\XML\XMLEntity( 'boolean' );
 				$xmlFieldBoolean->value = $field->boolean?'true':'false';
 
-				$xmlFieldBlob = new \System\XML\XMLEntity( 'blob' );
-				$xmlFieldBlob->value = $field->blob?'true':'false';
-
 				$xmlFieldPrimaryKey = new \System\XML\XMLEntity( 'primaryKey' );
 				$xmlFieldPrimaryKey->value = $field->primaryKey?'true':'false';
-
-				$xmlFieldAutoIncrement = new \System\XML\XMLEntity( 'autoIncrement' );
-				$xmlFieldAutoIncrement->value = $field->autoIncrement?'true':'false';
 
 				$xmlField->addChild( $xmlFieldName );
 				$xmlField->addChild( $xmlFieldLength );
@@ -1312,9 +1306,7 @@
 				$xmlField->addChild( $xmlFieldNumeric );
 				$xmlField->addChild( $xmlFieldDateTime );
 				$xmlField->addChild( $xmlFieldBoolean );
-				$xmlField->addChild( $xmlFieldBlob );
 				$xmlField->addChild( $xmlFieldPrimaryKey );
-				$xmlField->addChild( $xmlFieldAutoIncrement );
 
 				$xmlFields->addChild( $xmlField );
 			}

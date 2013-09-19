@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web;
 	use System\Base\ApplicationBase;
@@ -73,20 +73,14 @@
 		private $warnings					= array();
 
 		/**
-		 * Contains an array of trace statements
-		 * @var array
-		 */
-		private $trace						= array();
-
-		/**
 		 * Contains the Session object
-		 * @var session
+		 * @var Session
 		 */
 		private $session					= null;
 
 		/**
 		 * Contains the HTTPRequest object
-		 * @var session
+		 * @var HTTPRequest
 		 */
 		private $request					= null;
 
@@ -374,17 +368,6 @@
 
 
 		/**
-		 * Trace a variable
-		 *
-		 * @return  void
-		 */
-		final public function trace($var)
-		{
-			$this->trace[] = $var;
-		}
-
-
-		/**
 		 * return all controllers
 		 *
 		 * @param   string		$path		initial path
@@ -439,7 +422,6 @@
 				if( isset( $this->session[$this->applicationId.'_debug_warnings'] ))
 				{
 					$this->warnings = array_merge( $this->warnings, unserialize( $this->session[$this->applicationId.'_debug_warnings'] ));
-					$this->trace = array_merge( $this->trace, unserialize( $this->session[$this->applicationId.'_debug_trace'] ));
 				}
 			}
 		}
@@ -459,7 +441,6 @@
 			if( $this->debug )
 			{
 				$this->session[$this->applicationId.'_debug_warnings'] = serialize( $this->warnings );
-				$this->session[$this->applicationId.'_debug_trace'] = serialize( $this->trace );
 			}
 		}
 
@@ -721,10 +702,26 @@
 					}
 				}
 
-				// KLUDGE: bad form, not structured
+				// KLUDGE: bad form, not structured - but the only way to clear the output buffer
 				@ob_clean();
 
 				$response = new \System\Web\HTTPResponse();
+
+				// handle exceptions on ajax requests
+				if($this->requestHandler)
+				{
+					if($this->requestHandler instanceof PageControllerBase)
+					{
+						if($this->requestHandler->isAjaxPostBack)
+						{
+							$content = "Unhandled Exception in " . strrchr( $e->getFile(), '/' ) . "\\nRuntime Error: ".addslashes($e->getMessage())."\\n\\rDescription: An unhandled exception occurred during execution\\n\\rDetails: " . get_class($e) . ": ".addslashes($e->getMessage())."\\n\\rSource File: ".addslashes($filename)." on line: {$line}";
+
+							\System\Web\HTTPResponse::clear();
+							\System\Web\HTTPResponse::write("console.log('".(str_replace("\n", '', str_replace("\r", '', $content)))."');");
+							\System\Web\HTTPResponse::end();
+						}
+					}
+				}
 
 				\System\Web\HTTPResponse::addHeader( "Content-Type: text/html" );
 				\System\Web\HTTPResponse::write( "<!DOCTYPE html>
@@ -732,9 +729,9 @@
 <head>
 <title>Unhandled Exception: ".htmlentities($e->getMessage())."</title>
 <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">
-<link href=\"" . htmlentities($this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css', 'asset'=>'web/exception.css'))) . "\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
-<link href=\"" . htmlentities($this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css', 'asset'=>'web/debug.css'))) . "\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
-<script src=\"" . htmlentities($this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript', 'asset'=>'web/debug.js'))) . "\" type=\"text/javascript\"></script>
+<link href=\"" . htmlentities($this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css', 'asset'=>'debug_tools/exception.css'))) . "\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
+<link href=\"" . htmlentities($this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css', 'asset'=>'debug_tools/debug.css'))) . "\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
+<script src=\"" . htmlentities($this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript', 'asset'=>'debug_tools/debug.js'))) . "\" type=\"text/javascript\"></script>
 </head>
 <body>
 
@@ -765,8 +762,6 @@
 <!--<p class=\"dump\" id=\"debug_show\"><a href=\"#debug_dump\" onclick=\"document.getElementById('debug_info').style.display='block';document.getElementById('debug_show').style.display='none';\">Show Debug Information</a></p>-->
 <div style=\"display:none;\" id=\"debug_info\">");
 
-				//$this->dumpDebug();
-
 				\System\Web\HTTPResponse::write( "
 </div>
 
@@ -779,25 +774,7 @@
 </body>
 </html>" );
 
-				// handle exceptions on ajax requests
-				if($this->requestHandler)
-				{
-					if($this->requestHandler instanceof PageControllerBase)
-					{
-						if($this->requestHandler->isAjaxPostBack)
-						{
-							$content = \System\Web\HTTPResponse::getResponseContent();
-
-							$content = "Unhandled Exception in " . strrchr( $e->getFile(), '/' ) . "\\nRuntime Error: ".addslashes($e->getMessage())."\\n\\rDescription: An unhandled exception occurred during execution\\n\\rDetails: " . get_class($e) . ": ".addslashes($e->getMessage())."\\n\\rSource File: ".addslashes($filename)." on line: {$line}";
-
-							\System\Web\HTTPResponse::clear();
-							\System\Web\HTTPResponse::write( "
-//ExceptionWindow=window.open('', 'Dialog', 'height=800,width=1024,toolbar=no,scrollbars=yes,menubar=no,directories=no,location=no,status=no');
-console.log('".(str_replace("\n", '', str_replace("\r", '', $content)))."');
-");
-						}
-					}
-				}
+				\System\Web\HTTPResponse::end();
 			}
 			else
 			{
@@ -958,11 +935,15 @@ console.log('".(str_replace("\n", '', str_replace("\r", '', $content)))."');
 						{
 							$path = __PLUGINS_PATH__ . '/' . urlencode($request["id"]);
 						}
+
+						$offset = 31536000; // 1 year
+
 						$content = file_get_contents($path . '/assets/' . $asset);
 
+						HTTPResponse::addHeader("Expires: " . gmdate("D, d M Y H:i:s", time() + $offset) . " GMT");
+						HTTPResponse::addHeader("Cache-Control: max-age=$offset, must-revalidate"); 
 						HTTPResponse::addHeader("content-type:".$request["type"]);
-						// TODO: compress
-						// TODO: cache
+
 						HTTPResponse::write($content);
 						HTTPResponse::end();
 					}
@@ -990,9 +971,9 @@ console.log('".(str_replace("\n", '', str_replace("\r", '', $content)))."');
 <head>
 <title>Building...</title>
 <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">
-<link href=\"" . $this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . "&asset=web/debug.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
-".(isset($request["nostyle"])?"":"<link href=\"" . $this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . "&asset=web/exception.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />")."
-<script src=\"" . $this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/js')) . "&asset=web/debug.js\" type=\"text/javascript\"></script>
+<link href=\"" . $this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . "&asset=debug_tools/debug.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />
+".(isset($request["nostyle"])?"":"<link href=\"" . $this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . "&asset=debug_tools/exception.css\" rel=\"stylesheet\" type=\"text/css\" media=\"all\" />")."
+<script src=\"" . $this->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/js')) . "&asset=debug_tools/debug.js\" type=\"text/javascript\"></script>
 </head>
 <body>
 
@@ -1119,7 +1100,7 @@ No building is needed or allowed in a production environment.</p>
 
 				// dump app stats
 				\System\Web\HTTPResponse::write( "<div id=\"debug_toolbar\">" );
-				if( sizeof( $this->warnings ) > 0 )
+				if( sizeof( $this->warnings ) > 0 || sizeof( $this->trace ) > 0 )
 				{
 					\System\Web\HTTPResponse::write( "<a class=\"debug_open\" href=\"#\" onclick=\"PHPRumDebug.debugOpen()\"><span>Open debug panel</span> <strong>(".sizeof( $this->warnings ).")</strong></a> | " );
 				}
@@ -1129,8 +1110,6 @@ No building is needed or allowed in a production environment.</p>
 				}
 				\System\Web\HTTPResponse::write( "<a href=\"".__PROTOCOL__ . '://' . __HOST__ . \System\Web\WebApplicationBase::getInstance()->getPageURI('dev', array('id'=>'clean'))."\">Rebuild source</a> | " );
 				\System\Web\HTTPResponse::write( "<a href=\"".__PROTOCOL__ . '://' . __HOST__ . \System\Web\WebApplicationBase::getInstance()->getPageURI('dev', array('id'=>'run_all'))."\">Run all tests</a> | " );
-				//\System\Web\HTTPResponse::write( "<a onclick=\"PHPRumDebug.launchFrame('".__PROTOCOL__ . '://' . __HOST__ . \System\Web\WebApplicationBase::getInstance()->getPageURI('dev', array('id'=>'build','nostyle'=>'1'))."');\">Rebuild source</a> | " );
-				//\System\Web\HTTPResponse::write( "<a onclick=\"PHPRumDebug.launchFrame('".__PROTOCOL__ . '://' . __HOST__ . \System\Web\WebApplicationBase::getInstance()->getPageURI('dev', array('id'=>'run_all','nostyle'=>'1'))."');\">Run all tests</a> | " );
 				\System\Web\HTTPResponse::write( "<a href=\"#\">Tools</a> | " );
 				\System\Web\HTTPResponse::write( "<span><strong>Execution time:</strong> " . number_format($elapsed*1000, 2) . "ms</span>" );
 				\System\Web\HTTPResponse::write( "<span style=\"float: right;\">" );
@@ -1187,7 +1166,6 @@ No building is needed or allowed in a production environment.</p>
 					}
 					\System\Web\HTTPResponse::write( "</pre>" );
 				}
-				$this->trace = array();
 
 				// dump warnings
 				if( sizeof( $this->warnings ) > 0 )
@@ -1244,7 +1222,14 @@ No building is needed or allowed in a production environment.</p>
 				ob_start();
 				foreach($_POST as $key=>$value)
 				{
-					print("[{$key}] => {$value}\n");
+					if(is_array($value))
+					{
+						print("[{$key}] => ".serialize($value)."\n");
+					}
+					else
+					{
+						print("[{$key}] => {$value}\n");
+					}
 				}
 				$output = ob_get_clean();
 				\System\Web\HTTPResponse::write( \Rum::escape( $output ));

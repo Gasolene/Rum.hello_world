@@ -143,11 +143,6 @@
   content: ">>           ";
 }
 
-.gridview tfoot a,
-.gridview tfoot span {
-  padding-left: 4px;
-}
-
 .gridview .summary {
   display: none;
 }

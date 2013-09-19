@@ -14,9 +14,7 @@
 	 * @property string $caption
 	 * @property int $pageSize
 	 * @property int $page
-	 * @property int $filterGroupSize
 	 * @property bool $canSort
-	 * @property bool $canChangeOrder
 	 * @property bool $showFilters
 	 * @property bool $showHeader
 	 * @property bool $showFooter
@@ -32,9 +30,6 @@
 	 * @property string $listName
 	 * @property string $sortBy
 	 * @property string $sortOrder
-	 * @property string $moveCursor
-	 * @property string $moveOrder
-	 * @property array $filters
 	 * @property string $onmouseover
 	 * @property string $onmouseout
 	 * @property string $onclick
@@ -65,12 +60,6 @@
 		 * @var int
 		 */
 		protected $page						= 1;
-
-		/**
-		 * Number of records to display in dropdown filter, Default is 10
-		 * @var int
-		 */
-		protected $filterGroupSize			= 10;
 
 		/**
 		 * Specifies if table is sortable, Default is true
@@ -169,36 +158,6 @@
 		protected $sortOrder				= '';
 
 		/**
-		 * current grid moveCursor field
-		 * @var string
-		 */
-		protected $moveCursor				= 0;
-
-		/**
-		 * current grid moveCursor order
-		 * @var bool
-		 */
-		protected $moveOrder				= '';
-
-		/**
-		 * current grid filters
-		 * @var array
-		 */
-		protected $filters					= array();
-
-		/**
-		 * grid filter values
-		 * @var array
-		 */
-		protected $filterValues				= array();
-
-		/**
-		 * Array of actions
-		 * @var array
-		 */
-		protected $actions					= array();
-
-		/**
 		 * collection of columns
 		 * @var GridViewColumnCollection
 		 */
@@ -240,6 +199,12 @@
 		 */
 		private $_data						= null;
 
+		/**
+		 * @deprecated
+		 * @ignore
+		 */
+		private $__filterValues				= array();
+
 
 		/**
 		 * sets the controlId and prepares the control attributes
@@ -251,7 +216,17 @@
 		{
 			parent::__construct( $controlId );
 
-			$this->columns = new GridViewColumnCollection();
+			$this->columns = new GridViewColumnCollection($this);
+
+			// event handling
+			$this->events->add(new \System\Web\Events\GridViewPostEvent());
+
+			// default events
+			$onPostMethod = 'on' . ucwords( $this->controlId ) . 'Post';
+			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $onPostMethod))
+			{
+				$this->events->registerEventHandler(new \System\Web\Events\GridViewPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $onPostMethod));
+			}
 		}
 
 
@@ -269,14 +244,8 @@
 			elseif( $field === 'pageSize' ) {
 				return $this->pageSize;
 			}
-			elseif( $field === 'filterGroupSize' ) {
-				return $this->filterGroupSize;
-			}
 			elseif( $field === 'canSort' ) {
 				return $this->canSort;
-			}
-			elseif( $field === 'canChangeOrder' ) {
-				return $this->canChangeOrder;
 			}
 			elseif( $field === 'showFilters' ) {
 				return $this->showFilters;
@@ -308,9 +277,6 @@
 			elseif( $field === 'valueField' ) {
 				return $this->valueField;
 			}
-			elseif( $field === 'orderByField' ) {
-				return $this->orderByField;
-			}
 			elseif( $field === 'listName' ) {
 				return $this->listName;
 			}
@@ -320,20 +286,11 @@
 			elseif( $field === 'columns' ) {
 				return $this->columns;
 			}
-			elseif( $field === 'filters' ) {
-				return $this->filters;
-			}
 			elseif( $field === 'sortBy' ) {
 				return $this->sortBy;
 			}
 			elseif( $field === 'sortOrder' ) {
 				return $this->sortOrder;
-			}
-			elseif( $field === 'moveCursor' ) {
-				return $this->moveCursor;
-			}
-			elseif( $field === 'moveOrder' ) {
-				return $this->moveOrder;
 			}
 			elseif( $field === 'onmouseover' ) {
 				return $this->onmouseover;
@@ -375,9 +332,6 @@
 			}
 			elseif( $field === 'page' ) {
 				$this->page = (int)$value;
-			}
-			elseif( $field === 'filterGroupSize' ) {
-				$this->filterGroupSize = (int)$value;
 			}
 			elseif( $field === 'canSort' ) {
 				$this->canSort = (bool)$value;
@@ -421,20 +375,11 @@
 			elseif( $field === 'listName' ) {
 				$this->listName = (string)$value;
 			}
-			elseif( $field === 'filters' ) {
-				$this->filters = (array)$value;
-			}
 			elseif( $field === 'sortBy' ) {
 				$this->sortBy = (string)$value;
 			}
 			elseif( $field === 'sortOrder' ) {
 				$this->sortOrder = (string)$value;
-			}
-			elseif( $field === 'moveCursor' ) {
-				$this->moveCursor = (string)$value;
-			}
-			elseif( $field === 'moveOrder' ) {
-				$this->moveOrder = (string)$value;
 			}
 			elseif( $field === 'onmouseover' ) {
 				$this->onmouseover = (string)$value;
@@ -482,15 +427,195 @@
 
 
 		/**
-		 * set filter values
-		 * 
-		 * @param string $datafield name of datafield
-		 * @param array $values array of values
+		 * insert row in DataSet
+		 *
 		 * @return void
 		 */
-		public function setFilterValues( $datafield, array $values )
+		public function insertRow()
 		{
-			$this->filterValues[$datafield] = $values;
+			$request = \System\Web\HTTPRequest::$request;
+
+			if( $this->dataSource )
+			{
+				$pkey = '';
+				foreach($this->dataSource->fieldMeta as $meta)
+				{
+					if($meta->primaryKey)
+					{
+						$pkey = $meta->name;
+						break;
+					}
+				}
+
+				if($pkey)
+				{
+					$this->dataSource[$pkey] = null;
+					foreach($this->dataSource->fields as $field)
+					{
+						if(isset($request[str_replace(' ', '_', $field).'_null']))
+						{
+							$this->dataSource[$field] = $request[str_replace(' ', '_', $field).'_null'];
+						}
+					}
+					$this->dataSource->insert();
+				}
+				else
+				{
+					throw new \System\Base\InvalidOperationException("GridView::dataSource contains no primary key");
+				}
+			}
+			else
+			{
+				throw new \System\Base\InvalidOperationException("GridView::insertRow() called with null dataSource");
+			}
+		}
+
+
+		/**
+		 * update row in DataSet
+		 *
+		 * @param string $id entity id (primary key value) of the current row
+		 * @return void
+		 */
+		public function updateRow($id)
+		{
+			$request = \System\Web\HTTPRequest::$request;
+
+			if( $this->dataSource )
+			{
+				$pkey = '';
+				foreach($this->dataSource->fieldMeta as $meta)
+				{
+					if($meta->primaryKey)
+					{
+						$pkey = $meta->name;
+						break;
+					}
+				}
+
+				if($pkey)
+				{
+					if($this->dataSource->seek($pkey, $id))
+					{
+						foreach($this->dataSource->fields as $field)
+						{
+							if(isset($request[str_replace(' ', '_', $field).'_'.$id]))
+							{
+								$this->dataSource[$field] = $request[str_replace(' ', '_', $field).'_'.$id];
+							}
+						}
+						$this->dataSource->update();
+					}
+					else
+					{
+						throw new \System\Base\InvalidOperationException("GridView::dataSource contains no record with primary key `{$id}`");
+					}
+				}
+				else
+				{
+					throw new \System\Base\InvalidOperationException("GridView::dataSource contains no primary key");
+				}
+			}
+			else
+			{
+				throw new \System\Base\InvalidOperationException("GridView::updateRow() called with null dataSource");
+			}
+		}
+
+
+		/**
+		 * delete row in DataSet
+		 *
+		 * @param string $id entity id (primary key value) of the current row
+		 * @return void
+		 */
+		public function deleteRow($id)
+		{
+			$request = \System\Web\HTTPRequest::$request;
+
+			if( $this->dataSource )
+			{
+				$pkey = '';
+				foreach($this->dataSource->fieldMeta as $meta)
+				{
+					if($meta->primaryKey)
+					{
+						$pkey = $meta->name;
+						break;
+					}
+				}
+
+				if($pkey)
+				{
+					if($this->dataSource->seek($pkey, $id))
+					{
+						$this->dataSource->delete();
+					}
+					else
+					{
+						throw new \System\Base\InvalidOperationException("GridView::dataSource contains no record with primary key `{$id}`");
+					}
+				}
+				else
+				{
+					throw new \System\Base\InvalidOperationException("GridView::dataSource contains no primary key");
+				}
+			}
+			else
+			{
+				throw new \System\Base\InvalidOperationException("GridView::updateRow() called with null dataSource");
+			}
+		}
+
+
+		/**
+		 * set filter values
+		 *
+		 * @param  array &$filter	Instance of a GridViewFilterBase
+		 * @return void
+		 */
+		final public function setFilterValues($field, array $values)
+		{
+			trigger_error("GridView::setFilterValues() is deprecated, use GridViewColumn::setFilter() instead", E_USER_DEPRECATED);
+			$this->__filterValues[$field] = $values;
+		}
+
+
+		/**
+		 * reset filters
+		 * @return void
+		 */
+		public function resetFilters()
+		{
+			$this->columns->resetFilters();
+		}
+
+
+		/**
+		 * apply filter and sort
+		 * @return void
+		 */
+		public function applyFilterAndSort()
+		{
+			// filter results
+			$this->columns->filterDataSet( $this->dataSource );
+
+			// sort results
+			if( $this->sortBy && $this->canSort) {
+				$sort_event = new \System\Web\Events\GridViewSortEvent();
+
+				if($this->events->contains( $sort_event )) {
+					$this->events->raise( $sort_event, $this );
+				}
+				else {
+					// sort DataSet
+					$this->dataSource->sort( $this->sortBy, (strtolower($this->sortOrder)=='asc'?false:true), true );
+
+					if($this->ajaxPostBack) {
+						$this->updateAjax();
+					}
+				}
+			}
 		}
 
 
@@ -501,10 +626,10 @@
 		 */
 		public function getDomObject()
 		{
-			$this->columns->onRender();
+			$this->columns->render();
 
 			// get data
-			if( !$this->_data ) {
+			if( !$this->dataSource ) {
 				throw new \System\Base\InvalidOperationException("no valid DataSet object");
 			}
 
@@ -522,11 +647,11 @@
 			$caption->nodeValue .= $this->caption;
 
 			// check for valid datasource
-			if( $this->_data )
+			if( $this->dataSource )
 			{
 				// display all
 				if( $this->pageSize === 0 ) {
-					$this->pageSize = $this->_data->count;
+					$this->pageSize = $this->dataSource->count;
 					$this->showPageNumber = FALSE;
 				}
 
@@ -572,69 +697,29 @@
 				 *
 				 **********************************************************************/
 
-				// filter results
-				if( $this->filters ) {
-					$filter_event = new \System\Web\Events\GridViewFilterEvent();
-
-					if($this->events->contains( $filter_event )) {
-						$this->events->raise( $filter_event, $this );
-					}
-					else {
-						// filter DataSet
-						foreach( $this->filters as $column=>$value) {
-							if(strlen($value)>0) {
-								if(isset($this->filterValues[$column])) {
-									$this->_data->filter( $column, '=', $value, true );
-								}
-								else {
-									$this->_data->filter( $column, 'contains', $value, true );
-								}
-							}
-						}
-					}
-				}
-
-				// sort results
-				if( $this->sortBy && $this->canSort && !$this->canChangeOrder) {
-					$sort_event = new \System\Web\Events\GridViewSortEvent();
-
-					if($this->events->contains( $sort_event )) {
-						$this->events->raise( $sort_event, $this );
-					}
-					else {
-						// sort DataSet
-						$this->_data->sort( $this->sortBy, (strtolower($this->sortOrder)=='asc'?false:true), true );
-					}
-				}
-				elseif($this->canChangeOrder) {
-					$this->_data->sort( $this->orderByField, false, true );
-				}
-
 				// validate grid page
-				$this->_data->pageSize = $this->pageSize;
-				if( $this->page > $this->_data->pageCount() ) {
+				$this->dataSource->pageSize = $this->pageSize;
+				if( $this->page > $this->dataSource->pageCount() ) {
 					// if page is beyond DataSet, set to last page
-					$this->page = $this->_data->pageCount();
+					$this->page = $this->dataSource->pageCount();
 				}
 				elseif( $this->page < 1 ) {
 					// if page is before DataSet, set to first page
 					$this->page = 1;
 				}
 
-				$this->_data->page( $this->page );
-
-				$cssStyle='';
+				$this->dataSource->page( $this->page );
 
 				// loop through each item (record)
-				while( !$this->_data->eof() && $this->_data->page() === $this->page )
+				while( !$this->dataSource->eof() && $this->dataSource->page() === $this->page )
 				{
-					$tr = $this->getRowBody( $this->_data );
+					$tr = $this->getRowBody( $this->dataSource );
 
 					// add row to tbody
 					$tbody->addChild( $tr );
 
 					// move record pointer
-					$this->_data->next();
+					$this->dataSource->next();
 				}
 
 				/**********************************************************************
@@ -647,7 +732,7 @@
 				 * Footer
 				 */
 				if( $this->showFooter ) {
-					$tr = $this->getRowFooter( $this->_data );
+					$tr = $this->getRowFooter( $this->dataSource );
 					$tr->setAttribute( 'class', 'footer' );
 
 					$tfoot->addChild( $tr );
@@ -657,12 +742,12 @@
 				 * RecordNavigation
 				 */
 				if( $this->showPageNumber ) {
-					$tr = $this->getPagination( $this->_data );
+					$tr = $this->getPagination( $this->dataSource );
 					$tfoot->addChild( $tr );
 				}
 
 				// empty table
-				if( !$this->_data->count ) {
+				if( !$this->dataSource->count ) {
 					$tr = new \System\XML\DomObject( 'tr' );
 					$td = new \System\XML\DomObject( 'td' );
 
@@ -710,14 +795,17 @@
 				if( isset( $viewState['p'] ) &&
 					isset( $viewState['sb'] ) &&
 					isset( $viewState['so'] ) &&
-					isset( $viewState['f'] ) &&
 					isset( $viewState['s'] ))
 				{
 					$this->page = (int) $viewState['p'];
 					$this->sortBy = $viewState['sb'];
 					$this->sortOrder = $viewState['so'];
-					$this->filters = $viewState['f'];
 					$this->selected = $viewState['s'];
+
+					foreach($this->columns as $column)
+					{
+						$column->loadViewState($viewState);
+					}
 				}
 			}
 		}
@@ -733,8 +821,6 @@
 		{
 			if( $this->dataSource instanceof \System\DB\DataSet )
 			{
-				$this->_data = clone $this->dataSource;
-
 				if( $this->autoGenerateColumns || $this->columns->count === 0 )
 				{
 					$this->_generateColumns();
@@ -754,12 +840,32 @@
 		 */
 		protected function onLoad()
 		{
-			$this->columns->onLoad();
+			// Backgwards compatibilty code - remove in Version 6.6
+			if($this->showFilters) {
+				$nofilters = true;
+				foreach( $this->columns as $column ) {
+					if($column->filter) {
+						$nofilters = false;
+					}
+				}
+				if($nofilters) {
+					foreach( $this->columns as $column ) {
+						if(isset($this->__filterValues[$column->dataField])) {
+							$column->setFilter(new GridViewListFilter($this->__filterValues[$column->dataField]));
+						}
+						else {
+							$column->setFilter(new GridViewStringFilter());
+						}
+					}
+				}
+			}
+			// End Backwards compatibilty code
+
+			$this->columns->load();
 
 			$page = $this->getParentByType( '\System\Web\WebControls\Page' );
 			if( $page )
 			{
-				$page->addLink( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/css')) . '&asset=/gridview/gridview.css' );
 				$page->addScript( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=/gridview/gridview.js' );
 			}
 		}
@@ -772,7 +878,7 @@
 		 */
 		protected function onRequest( array &$request )
 		{
-			$this->columns->onRequest( $request );
+			$this->columns->requestProcessor( $request );
 
 			if( isset( $request[$this->getHTMLControlId().'__sort_by'] ))
 			{
@@ -786,18 +892,6 @@
 				unset( $request[$this->getHTMLControlId().'__sort_order'] );
 			}
 
-			if( isset( $request[$this->getHTMLControlId().'__move'] ))
-			{
-				$this->moveCursor = $request[$this->getHTMLControlId().'__move'];
-				unset( $request[$this->getHTMLControlId().'__move'] );
-			}
-
-			if( isset( $request[$this->getHTMLControlId().'__move_order'] ))
-			{
-				$this->moveOrder = $request[$this->getHTMLControlId().'__move_order'];
-				unset( $request[$this->getHTMLControlId().'__move_order'] );
-			}
-
 			if( isset( $request[$this->getHTMLControlId().'__page'] ))
 			{
 				$this->page = (int) $request[$this->getHTMLControlId().'__page'];
@@ -809,7 +903,7 @@
 				$this->selected = $request[$this->getHTMLControlId().'__selected'];
 				unset( $request[$this->getHTMLControlId().'__selected'] );
 			}
-
+/**
 			if( isset( $request[$this->getHTMLControlId().'__filter_name'] ))
 			{
 				if( isset( $request[$this->getHTMLControlId().'__filter_value'] ))
@@ -821,7 +915,6 @@
 
 					if(!$this->filters[$request[$htmlId.'__filter_name']])
 					{
-						unset($this->filters[$request[$htmlId.'__filter_name']]);
 					}
 					elseif($this->filters[$request[$htmlId.'__filter_name']] == 'true')
 					{
@@ -837,67 +930,34 @@
 
 				unset( $request[$this->getHTMLControlId().'__filter_name'] );
 			}
+*/
+			// filter results
+//			if( $this->filters ) {
+//				$filter_event = new \System\Web\Events\GridViewFilterEvent();
+//
+//				if($this->events->contains( $filter_event )) {
+//					$this->events->raise( $filter_event, $this );
+//				}
+//				else {
+//					// filter DataSet
+//					foreach( $this->filters as $column=>$value) {
+//						if(strlen($value)>0) {
+//							if(isset($this->filterValues[$column])) {
+//								$this->dataSource->filter( $column, '=', $value, true );
+//							}
+//							else {
+//								$this->dataSource->filter( $column, 'contains', $value, true );
+//							}
+//						}
+//					}
+//
+//					if($this->ajaxPostBack) {
+//						$this->updateAjax();
+//					}
+//				}
+//			}
 
-			// order DataSet
-			if( $this->canChangeOrder && $this->orderByField && $this->moveOrder ) {
-				if( !$this->_data ) {
-					throw new \System\Base\InvalidOperationException("no valid DataSet object");
-				}
-
-				$event = new \System\Web\Events\GridViewChangeOrderEvent();
-
-				if($this->events->contains( $event )) {
-					$this->events->raise( $event, $this );
-				}
-				else {
-					// order DataSet
-
-					$this->_data->sort( $this->orderByField, false, true );
-					$this->_data->first();
-
-					$count = 0;
-					while(!$this->_data->eof())
-					{
-						$this->_data[$this->orderByField] = $count++;
-						$this->_data->update();
-						$this->_data->next();
-					}
-
-					$this->_data->move($this->moveCursor);
-
-					if( $this->moveOrder=='up' )
-					{
-						if($this->_data->cursor>0)
-						{
-							$this->_data[$this->orderByField]-=1;
-							$this->_data->update();
-							$this->_data->prev();
-							$this->_data[$this->orderByField]+=1;
-							$this->_data->update();
-						}
-					}
-					else
-					{
-						if($this->_data->cursor<$this->_data->count-1)
-						{
-							$this->_data[$this->orderByField]+=1;
-							$this->_data->update();
-							$this->_data->next();
-							$this->_data[$this->orderByField]-=1;
-							$this->_data->update();
-						}
-					}
-				}
-
-				if(!$this->ajaxPostBack)
-				{
-					\System\Web\WebApplicationBase::getInstance()->setForwardPage('', $request);
-				}
-				else
-				{
-					$this->updateAjax();
-				}
-			}
+			$this->applyFilterAndSort();
 		}
 
 
@@ -909,7 +969,8 @@
 		 */
 		protected function onPost( array &$request )
 		{
-			$this->columns->onPost( $request );
+			$this->events->raise(new \System\Web\Events\GridViewPostEvent(), $this, $request);
+			$this->columns->handlePostEvents( $request );
 		}
 
 
@@ -926,8 +987,12 @@
 				$viewState['p'] = $this->page;
 				$viewState['sb'] = $this->sortBy;
 				$viewState['so'] = $this->sortOrder;
-				$viewState['f'] = $this->filters;
 				$viewState['s'] = $this->selected;
+
+				foreach($this->columns as $column)
+				{
+					$column->saveViewState($viewState);
+				}
 			}
 		}
 
@@ -942,7 +1007,7 @@
 			// update entire table
 			$page = $this->getParentByType('\System\Web\WebControls\Page');
 
-			$page->loadAjaxJScriptBuffer('table1 = document.getElementById(\''.$this->getHTMLControlId().'\');');
+			$page->loadAjaxJScriptBuffer('table1 = Rum.id(\''.$this->getHTMLControlId().'\');');
 			$page->loadAjaxJScriptBuffer('table2 = document.createElement(\'div\');');
 			$page->loadAjaxJScriptBuffer('table2.innerHTML = \''.\addslashes(str_replace("\n", '', str_replace("\r", '', $this->fetch()))).'\';');
 			$page->loadAjaxJScriptBuffer('table1.parentNode.insertBefore(table2, table1);');
@@ -974,7 +1039,7 @@
 				{
 					$input = new \System\XML\DomObject( 'input' );
 					$input->setAttribute( 'type', 'checkbox' );
-					$input->setAttribute( 'onclick', 'PHPRum.gridViewSelectAll(\''.$this->getHTMLControlId().'\');' );
+					$input->setAttribute( 'onclick', 'Rum.gridViewSelectAll(\''.$this->getHTMLControlId().'\');' );
 					$input->setAttribute( 'id', $this->getHTMLControlId() . '__selectall' );
 					$input->setAttribute( 'name', $this->getHTMLControlId() . '__selectall' );
 
@@ -1021,11 +1086,13 @@
 
 					// generate sort URL
 					if(( $this->sortBy === $column['DataField'] ) && $this->sortOrder=='asc' ) {
-						$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__sort_by='.rawurlencode($column['DataField']).'&'.$this->getHTMLControlId().'__sort_order=desc' ));
+						$order = "desc";
 					}
 					else {
-						$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__sort_by='.rawurlencode($column['DataField']).'&'.$this->getHTMLControlId().'__sort_order=asc' ));
+						$order = "asc";
 					}
+
+					$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__sort_by='.($column['DataField']).'&'.$this->getHTMLControlId().'__sort_order='.$order));
 
 					// add link node to column
 					$th->addChild( $a );
@@ -1076,8 +1143,6 @@
 				$tr->addChild( $th );
 			}
 
-			$showFilters = false;
-
 			// loop through each column
 			foreach( $this->columns as $column )
 			{
@@ -1088,87 +1153,84 @@
 				}
 
 				// column is filterable
-				if( $column['DataField'] && $column->canFilter )
+				if( $column->filter )
 				{
-					foreach( $this->_data->fieldMeta as $field )
+					$th->addChild($column->getFilterDomObject($this->getHTMLControlId()));
+				}
+
+					/**
+					if($column->filterType == GridViewFilterType::KeyValueList())
 					{
-						/*
-						$values = array();
-						foreach($this->_data->rows as $row)
+						$select = new \System\XML\DomObject( 'select' );
+						$select->setAttribute('name', $this->getHTMLControlId().'__filter_value');
+						$option = new \System\XML\DomObject( 'option' );
+						$option->setAttribute('value', '');
+						$option->nodeValue = '';
+						$select->addChild($option);
+
+						// set selected value
+						if(isset($this->filters[$column["DataField"]]) && !\in_array($this->filters[$column["DataField"]], $column->filterValues))
 						{
-							$values[$row[$field->name]] = $row[$field->name];
+							$option = new \System\XML\DomObject( 'option' );
+							$option->setAttribute('value', $this->filters[$column["DataField"]]);
+							$option->nodeValue = $this->filters[$column["DataField"]];
+							$option->setAttribute('selected', 'selected');
+							$select->addChild($option);
 						}
 
-						$count = count($values);
-						*/
-
-						if($field->name == $column["DataField"])
+						// get values
+						foreach($column->filterValues as $key=>$value)
 						{
-							if(isset($this->filterValues[$column["DataField"]]))
+							$option = new \System\XML\DomObject( 'option' );
+							$option->setAttribute('value', $value);
+							$option->nodeValue = $key;
+							if(isset($this->filters[$column["DataField"]]))
 							{
-								$values = $this->filterValues[$column["DataField"]];
-								$keys = array_keys($this->filterValues[$column["DataField"]]);
-
-								$select = new \System\XML\DomObject( 'select' );
-								$select->setAttribute('name', $this->getHTMLControlId().'__filter_value');
-								$option = new \System\XML\DomObject( 'option' );
-								$option->setAttribute('value', '');
-								$option->nodeValue = '';
-								$select->addChild($option);
-
-								if(isset($this->filters[$column["DataField"]]) && !\in_array($this->filters[$column["DataField"]], $values))
+								if(strtolower($this->filters[$column["DataField"]])==strtolower($value))
 								{
-									$option = new \System\XML\DomObject( 'option' );
-									$option->setAttribute('value', $this->filters[$column["DataField"]]);
-									$option->nodeValue = $this->filters[$column["DataField"]];
 									$option->setAttribute('selected', 'selected');
-									$select->addChild($option);
 								}
-
-								// set values
-								foreach($values as $key=>$value)
-								{
-									$option = new \System\XML\DomObject( 'option' );
-									$option->setAttribute('value', $value);
-									$option->nodeValue = $key;
-									if(isset($this->filters[$column["DataField"]]))
-									{
-										if(strtolower($this->filters[$column["DataField"]])==strtolower($value))
-										{
-											$option->setAttribute('selected', 'selected');
-										}
-									}
-									$select->addChild($option);
-								}
-
-								$select->setAttribute( 'onchange', "PHPRum.sendPostBack('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
-								$th->addChild( $select );
 							}
-							else
-							{
-								$input = new \System\XML\DomObject('input');
-								$input->setAttribute('name', $this->getHTMLControlId().'__filter_value');
-								$input->setAttribute('class', 'textbox');
-								$button = new \System\XML\DomObject('input');
-								$button->setAttribute('type', 'button');
-								$button->setAttribute('class', 'button');
-								$button->setAttribute('value', 'Find');
-
-								// set value
-								if(isset($this->filters[$column["DataField"]]))
-								{
-									$input->setAttribute('value', $this->filters[$column["DataField"]]);
-								}
-
-								$input->setAttribute( 'onchange', "PHPRum.sendPostBack('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
-								$button->setAttribute( 'onclick', "PHPRum.sendPostBack('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+document.getElementById('".$this->getHTMLControlId().'__filter_value'."').value);" );
-
-								$th->addChild( $input );
-								$th->addChild( $button );
-							}
+							$select->addChild($option);
 						}
+
+						if($this->ajaxPostBack)
+						{
+							$select->setAttribute( 'onchange', "Rum.sendSync('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
+						}
+						else
+						{
+							$select->setAttribute( 'onchange', "Rum.sendSync('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
+						}
+
+						$th->addChild( $select );
+					}
+					else if($column->filterType == GridViewFilterType::String())
+					{
+						$input = new \System\XML\DomObject('input');
+						$input->setAttribute('name', $this->getHTMLControlId().'__filter_value');
+						$input->setAttribute('class', 'textbox');
+
+						// set value
+						if(isset($this->filters[$column["DataField"]]))
+						{
+							$input->setAttribute('value', $this->filters[$column["DataField"]]);
+						}
+
+						if($this->ajaxPostBack)
+						{
+							$input->setAttribute( 'onchange',													  "Rum.sendAsync('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
+							$input->setAttribute( 'onkeypress', "if(event.keyCode == 13){event.returnValue = false;Rum.sendAsync('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);};" );
+						}
+						else
+						{
+							$input->setAttribute( 'onkeypress', "if(event.keyCode == 13){event.returnValue = false;Rum.sendSync('".\System\Web\WebApplicationBase::getInstance()->config->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);};" );
+						}
+
+						$th->addChild( $input );
 					}
 				}
+				*/
 
 				// add column to header
 				$tr->addChild( $th );
@@ -1238,12 +1300,12 @@
 						$tr->appendAttribute( 'class', ' selected' );
 					}
 
-					$tr->appendAttribute( 'onclick', 'PHPRum.gridViewUnSelectAll( \'' . $this->getHTMLControlId() . '\' );' );
+					$tr->appendAttribute( 'onclick', 'Rum.gridViewUnSelectAll( \'' . $this->getHTMLControlId() . '\' );' );
 				}
 
-				$tr->appendAttribute( 'onclick', 'if( document.getElementById(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { document.getElementById(\''. (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = false; } else { document.getElementById(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = true; }' );
-				$tr->appendAttribute( 'onclick', 'if( document.getElementById(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'row\' ) { this.className = \'selected row\'; } else { this.className = \'selected row_alt\'; }}' );
-				$tr->appendAttribute( 'onclick', 'if(!document.getElementById(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'selected row\' ) { this.className = \'row\'; } else { this.className = \'row_alt\'; }}' );
+				$tr->appendAttribute( 'onclick', 'if( Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { Rum.id(\''. (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = false; } else { Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = true; }' );
+				$tr->appendAttribute( 'onclick', 'if( Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'row\' ) { this.className = \'selected row\'; } else { this.className = \'selected row_alt\'; }}' );
+				$tr->appendAttribute( 'onclick', 'if(!Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'selected row\' ) { this.className = \'row\'; } else { this.className = \'row_alt\'; }}' );
 
 				// add td element to tr
 				$td->addChild( $input );
@@ -1258,11 +1320,6 @@
 				// create column node (field)
 				$td = new \System\XML\DomObject( 'td' );
 
-				$onmouseoverCol = $column->onmouseover;
-				$onmouseoutCol = $column->onmouseout;
-				$onclickCol = $column->onclick;
-				$ondblclickCol = $column->ondblclick;
-
 				// set column attributes
 				if( $column['Classname'] ) {
 					$td->setAttribute( 'class', $column['Classname'] );
@@ -1270,25 +1327,9 @@
 
 				// auto format with column value
 				if( !$column['Item-Text'] && $column['DataField'] ) {
-
-					// get all field values in array
 					foreach( $ds->fields as $field ) {
 						$values[$field] = $ds[$field];
-
-						if( $onmouseoverCol ) {
-							$onmouseoverCol = str_replace( '%' . $field . '%', $values[$field], $onmouseoverCol );
-						}
-						if( $onmouseoutCol ) {
-							$onmouseoutCol = str_replace( '%' . $field . '%', $values[$field], $onmouseoutCol );
-						}
-						if( $onclickCol ) {
-							$onclickCol = str_replace( '%' . $field . '%', $values[$field], $onclickCol );
-						}
-						if( $ondblclickCol ) {
-							$ondblclickCol = str_replace( '%' . $field . '%', $values[$field], $ondblclickCol );
-						}
 					}
-
 					$td->nodeValue = $values[$column['DataField']];
 				}
 				elseif( $column['Item-Text'] ) {
@@ -1298,42 +1339,15 @@
 					foreach( $ds->fields as $field ) {
 						$values[$field] = $ds[$field];
 						$html = str_replace( '%' . $field . '%', '$values[\''.addslashes($field).'\']', $html );
-
-						if( $onmouseoverCol ) {
-							$onmouseoverCol = str_replace( '%' . $field . '%', $values[$field], $onmouseoverCol );
-						}
-						if( $onmouseoutCol ) {
-							$onmouseoutCol = str_replace( '%' . $field . '%', $values[$field], $onmouseoutCol );
-						}
-						if( $onclickCol ) {
-							$onclickCol = str_replace( '%' . $field . '%', $values[$field], $onclickCol );
-						}
-						if( $ondblclickCol ) {
-							$ondblclickCol = str_replace( '%' . $field . '%', $values[$field], $ondblclickCol );
-						}
 					}
 
 					// eval
 					$eval = eval( '$html = ' . $html . ';' );
-					if($eval===false)
-					{
+					if($eval===false) {
 						throw new \System\Base\InvalidOperationException("Could not run expression in GridView on column `".$column["DataField"]."`: \$html = " . ($html) . ';');
 					}
 
 					$td->innerHtml = $html?$html:'&nbsp;';
-				}
-
-				if( $onmouseoverCol ) {
-					$td->appendAttribute('onmouseover', $onmouseoverCol );
-				}
-				if( $onmouseoutCol ) {
-					$td->appendAttribute('onmouseout', $onmouseoutCol );
-				}
-				if( $onclickCol ) {
-					$td->appendAttribute('onclick', $onclickCol );
-				}
-				if( $ondblclickCol ) {
-					$td->appendAttribute('ondblclick', $ondblclickCol );
 				}
 
 				// add td element to tr
@@ -1348,8 +1362,8 @@
 
 				if($this->ajaxPostBack)
 				{
-					$up->setAttribute( 'onclick', 'PHPRum.sendHttpRequest(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'PHPRum.gridViewAjaxCallback\');');
-					$down->setAttribute( 'onclick', 'PHPRum.sendHttpRequest(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'PHPRum.gridViewAjaxCallback\');');
+					$up->setAttribute( 'onclick', 'Rum.evalAsync(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'Rum.gridViewAjaxCallback\');');
+					$down->setAttribute( 'onclick', 'Rum.evalAsync(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'Rum.gridViewAjaxCallback\');');
 				}
 				else
 				{
@@ -1435,6 +1449,7 @@
 
 				if( $column['Footer-Text'] ) {
 					$html = $column['Footer-Text'];
+					$footerText = '';
 					if(false === eval("\$footerText ={$html};")) {
 						throw new \System\Base\InvalidOperationException("Could not run expression in GridView on column `".$column["DataField"]."`: \$html = " . ($html) . ';');
 					}
@@ -1484,7 +1499,7 @@
 			$a->setAttribute('class', 'prev');
 			if( $this->page > 1 )
 			{
-				$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.($this->page-1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.($this->sortOrder?'desc':'asc' )));
+				$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.($this->page-1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
 			}
 			else
 			{
@@ -1493,25 +1508,25 @@
 			$span->addChild( $a );
 
 			// page jump
-			$count = $this->_data->count;
+			$count = $this->dataSource->count;
 			for( $page=1; $this->pageSize && (( $page * $this->pageSize ) - $this->pageSize ) < $count; $page++ )
 			{
 				$start = ((( $page * $this->pageSize ) - $this->pageSize ) + 1 );
 
-				if( $page * $this->pageSize < $this->_data->count )
+				if( $page * $this->pageSize < $this->dataSource->count )
 				{
 					$end = ( $page * $this->pageSize );
 				}
 				else
 				{
-					$end = $this->_data->count;
+					$end = $this->dataSource->count;
 				}
 
 				// page select
 				if( $this->page <> $page )
 				{
 					$a = new \System\XML\DomObject( 'a' );
-					$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$page.'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.($this->sortOrder?'desc':'asc' )));
+					$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$page.'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
 					$a->nodeValue .= $page;
 					$a->setAttribute( 'class', 'page' );
 					$span->addChild( $a );
@@ -1529,9 +1544,9 @@
 			$a = new \System\XML\DomObject( 'a' );
 			$a->nodeValue .= 'next';
 			$a->setAttribute('class', 'next');
-			if(( $this->page * $this->pageSize ) < $this->_data->count && $this->pageSize )
+			if(( $this->page * $this->pageSize ) < $this->dataSource->count && $this->pageSize )
 			{
-				$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.($this->page+1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.($this->sortOrder?'desc':'asc' )));
+				$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.($this->page+1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
 			}
 			else
 			{
@@ -1543,21 +1558,21 @@
 
 			// get page info
 			$start = ((( $this->page * $this->pageSize ) - $this->pageSize ) + 1 );
-			if( !$this->_data->count ) $start = 0;
+			if( !$this->dataSource->count ) $start = 0;
 
 			$end = 0;
-			if( $this->page * $this->pageSize < $this->_data->count )
+			if( $this->page * $this->pageSize < $this->dataSource->count )
 			{
 				$end = ( $this->page * $this->pageSize );
 			}
 			else
 			{
-				$end = $this->_data->count;
+				$end = $this->dataSource->count;
 			}
 
 			$span = new \System\XML\DomObject( 'span' );
 			$span->setAttribute('class', 'summary');
-			$span->nodeValue .= "showing $start to $end of " . $this->_data->count;
+			$span->nodeValue .= "showing $start to $end of " . $this->dataSource->count;
 
 			$td->addChild( $span );
 			$tr->addChild( $td );
@@ -1573,11 +1588,11 @@
 		 */
 		private function _generateColumns()
 		{
-			if( $this->_data )
+			if( $this->dataSource )
 			{
-				$this->columns = new GridViewColumnCollection();
+				$this->columns = new GridViewColumnCollection($this);
 
-				foreach( $this->_data->fieldMeta as $field )
+				foreach( $this->dataSource->fieldMeta as $field )
 				{
 					if( !$field->primaryKey || $this->showPrimaryKey )
 					{

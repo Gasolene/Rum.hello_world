@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -206,19 +206,6 @@
 
 
 		/**
-		 * called when control is loaded
-		 *
-		 * @return bool			true if successfull
-		 */
-		protected function onLoad()
-		{
-			parent::onLoad();
-
-			$this->getParentByType( '\System\Web\WebControls\Form' )->addParameter( $this->getHTMLControlId() . '__post', '1' );
-		}
-
-
-		/**
 		 * process the HTTP request array
 		 *
 		 * @return void
@@ -231,31 +218,18 @@
 				{
 					$this->submitted = true;
 				}
-				elseif( isset( $request[$this->getHTMLControlId() . '__post'] ))
+
+				if( isset( $request[$this->getHTMLControlId()] ))
 				{
 					$this->submitted = true;
 
-					if( isset( $request[$this->getHTMLControlId()] ))
+					if( $this->value != $request[$this->getHTMLControlId()] )
 					{
-						if( $this->value != $request[$this->getHTMLControlId()] )
-						{
-							$this->changed = true;
-						}
-
-						$this->value = $request[$this->getHTMLControlId()];
-						unset( $request[$this->getHTMLControlId()] );
-					}
-					else
-					{
-						if( $this->value != null )
-						{
-							$this->changed = true;
-						}
-
-						$this->value = null;
+						$this->changed = true;
 					}
 
-					unset( $request[$this->getHTMLControlId() . '__post'] );
+					$this->value = $request[$this->getHTMLControlId()];
+					unset( $request[$this->getHTMLControlId()] );
 				}
 
 				if( !$this->value && $this->multiple )
@@ -270,8 +244,14 @@
 
 			if(( $this->ajaxPostBack || $this->ajaxValidation ) && $this->submitted)
 			{
-				$this->validate($errMsg);
-				$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("if(document.getElementById('{$this->getHTMLControlId()}__err')){PHPRum.setText(document.getElementById('{$this->getHTMLControlId()}__err'), '".\addslashes($errMsg)."')}");
+				if($this->validate($errMsg))
+				{
+					$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.clear('{$this->getHTMLControlId()}');");
+				}
+				else
+				{
+					$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.assert('{$this->getHTMLControlId()}', '".\addslashes($errMsg)."');");
+				}
 			}
 		}
 	}

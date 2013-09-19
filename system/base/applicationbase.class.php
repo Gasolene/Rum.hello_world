@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Base;
 
@@ -23,13 +23,14 @@
 	 * @property   string $charset Specifies the character set
 	 * @property   DataAdapter $dataAdapter Reference to the DataAdapter
 	 * @property   bool $debug Specifies whether the application is in debug mode
+	 * @property   array $trace Contains an array of trace statements
 	 * @property   Timer $timer Reference to the app Timer
 	 * @property   EventCollection $events event collection
 	 *
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
 	 */
-	abstract class ApplicationBase
+	abstract class ApplicationBase extends Object
 	{
 		/**
 		 * Specifies the application id
@@ -56,16 +57,22 @@
 		private $cache						= null;
 
 		/**
-		 * Contains an instance of the logger object
+		 * Contains an instance of a logger object
 		 * @var LoggerBase
 		 */
 		private $logger						= null;
 
 		/**
-		 * Contains an instance of the translator object
+		 * Contains an instance of a translator object
 		 * @var TranslatorBase
 		 */
 		private $translator					= null;
+
+		/**
+		 * Contains an instance of a mail client object
+		 * @var \System\Comm\Mail\IMailClient
+		 */
+		private $mailClient					= null;
 
 		/**
 		 * Specifies the language
@@ -92,6 +99,12 @@
 		private $debug						= false;
 
 		/**
+		 * Contains an array of trace statements
+		 * @var array
+		 */
+		private $trace						= array();
+
+		/**
 		 * Contains the app execution start time in microseconds
 		 * @var Timer
 		 */
@@ -102,12 +115,6 @@
 		 * @var bool
 		 */
 		private $running					= false;
-
-		/**
-		 * event collection
-		 * @var EventCollection
-		 */
-		protected $events					= null;
 
 		/**
 		 * Instance of the application
@@ -134,7 +141,6 @@
 			$this->timer = new \System\Utils\Timer(true);
 
 			// Event handling
-			$this->events = new EventCollection();
 			$this->events->add(new Events\ApplicationRunEvent());
 
 			$onRunMethod = 'on'.ucwords($this->id).'Run';
@@ -181,6 +187,9 @@
 			elseif( $field === 'debug' ) {
 				return $this->debug;
 			}
+			elseif( $field === 'trace' ) {
+				return $this->trace;
+			}
 			elseif( $field === 'timer' ) {
 				return $this->timer;
 			}
@@ -190,11 +199,8 @@
 			elseif( $field === 'charset' ) {
 				return $this->charset;
 			}
-			elseif( $field === 'events' ) {
-				return $this->events;
-			}
 			else {
-				throw new BadMemberCallException("call to undefined property $field in ".get_class($this));
+				return parent::__get($field);
 			}
 		}
 
@@ -382,6 +388,17 @@
 			{
 				throw new \Exception( 'The Application has not been initialized' );
 			}
+		}
+
+
+		/**
+		 * trace
+		 *
+		 * @return  void
+		 */
+		final public function trace($var)
+		{
+			$this->trace[] = $var;
 		}
 
 

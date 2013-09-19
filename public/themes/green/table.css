@@ -180,33 +180,27 @@
   width: 60px;
 }
 
-.gridview tbody .edit_action .button {
-  background: none;
-  border: none;
+.gridview .edit .button {
   background-image: url(icons/edit-icon.png);
   background-position: center;
-  text-indent: -10000px;
+  text-indent: -3000px;
   width: 32px;
   height: 32px;
 }
 
-.gridview tbody .delete_action .button,
-.gridview tbody .action .button {
-  background: none;
-  border: none;
+.gridview .delete .button {
   background-image: url(icons/delete-icon.png);
   background-position: center;
-  text-indent: -10000px;
+  text-indent: -3000px;
   width: 32px;
   height: 32px;
 }
 
-.gridview tfoot .action .button {
-  background: none;
-  border: none;
+.gridview tfoot .delete .button {
+  display: block;
   background-image: url(icons/new-icon.png);
   background-position: center;
-  text-indent: -10000px;
+  text-indent: -3000px;
   width: 32px;
   height: 32px;
 }

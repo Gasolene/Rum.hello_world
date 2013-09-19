@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Security;
 
@@ -60,6 +60,8 @@
 
 				if( $status->authenticated() )
 				{
+					Authentication::$identity = $username;
+
 					if(self::$logLevel>=AuthenticationLogLevel::AllEvents())
 					{
 						\Rum::log("User `{$username}` logged in from IP {$_SERVER["REMOTE_ADDR"]}", 'security');

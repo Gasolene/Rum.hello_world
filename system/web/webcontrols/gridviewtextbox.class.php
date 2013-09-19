@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -18,29 +18,51 @@
 	class GridViewTextBox extends GridViewControlBase
 	{
 		/**
-		 * size
-		 * @var int
-		 */
-		protected $size = 30;
-
-		/**
 		 * get item text
 		 *
-		 * @param string $dataField
-		 * @param string $parameter
-		 * @param string $params
+		 * @param string $dataField datafield of the current row
+		 * @param string $parameter parameter to send
 		 * @return string
 		 */
-		protected function getItemText($dataField, $parameter, $params)
+		protected function getItemText($dataField, $parameter)
 		{
+			trigger_error("GridViewTextBox is deprecated, use GridViewText instead", E_USER_DEPRECATED);
+
 			if($this->ajaxPostBack)
 			{
-				$params .= "&{$parameter}=\'+this.value+\'";
-				return '\'<input type="text" size="'.$this->size.'" value="\'.%'.$dataField.'%.\'" class="textbox" onchange="PHPRum.httpRequestObjects[\\\''.strtolower($parameter).'HTTPRequest\\\'] = PHPRum.sendHttpRequest(\\\''.\System\Web\WebApplicationBase::getInstance()->config->uri.'/\\\',\\\''.$this->escape($params).'\\\',\\\'POST\\\', function() { PHPRum.evalHttpResponse(\\\'PHPRum.httpRequestObjects[\\\\\\\''.strtolower($parameter).'HTTPRequest\\\\\\\']\\\') } );" />\'';
+				$uri = \System\Web\WebApplicationBase::getInstance()->config->uri;
+				$params = $this->getRequestData() . "&{$this->pkey}='.\\rawurlencode(%{$this->pkey}%).'&{$parameter}=\'+this.value+\'";
+				return "'<input name=\"{$parameter}_'.%{$this->pkey}%.'\" type=\"text\" value=\"'.%{$dataField}%.'\" class=\"textbox\" onchange=\"Rum.evalAsync(\'{$uri}/\',\'".$this->escape($params)."\',\'POST\');\" />'";
 			}
 			else
 			{
-				return '\'<input type="text" value="\'.%'.$dataField.'%.\'" class="textbox" />\'';
+				return "'<input name=\"{$parameter}_'.%{$this->pkey}%.'\" type=\"text\" value=\"'.%{$dataField}%.'\" class=\"textbox\" />'";
+			}
+		}
+
+		/**
+		 * get footer text
+		 *
+		 * @param string $dataField datafield of the current row
+		 * @param string $parameter parameter to send
+		 * @return string
+		 */
+		protected function getFooterText($dataField, $parameter)
+		{
+			if( !$this->footerText )
+			{
+				/*
+				if($this->ajaxPostBack)
+				{
+					$uri = \System\Web\WebApplicationBase::getInstance()->config->uri;
+					$params = $this->getRequestData() . "&{$parameter}=\'+this.value+\'";
+					return "'<input name=\"{$parameter}_null\" type=\"text\" class=\"textbox\" onchange=\"Rum.evalAsync(\'{$uri}/\',\'".$this->escape($params)."\',\'POST\');\" />'";
+				}
+				*/
+				return "'<input name=\"{$parameter}_null\" type=\"text\" class=\"textbox\" />'";			}
+			else
+			{
+				return $this->footerText;
 			}
 		}
 	}

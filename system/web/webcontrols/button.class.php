@@ -2,8 +2,8 @@
 	/**
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
-	 *
-	 *
+	 * @author			Darnell Shinbine
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -13,8 +13,6 @@
 	 *
 	 * @property string $text Specifies button text
 	 * @property string $src Specifies button image source
-	 * @property string $submitText Specifies button text to display on submit
-	 * @property bool $disableOnSubmit Specifies whether to disable all other buttons on submit
 	 *
 	 * @package			PHPRum
 	 * @subpackage		Web
@@ -33,18 +31,6 @@
 		 * @var string
 		 */
 		protected $src						= '';
-
-		/**
-		 * specifies button text to display on submit
-		 * @var string
-		 */
-		protected $submitText				= '';
-
-		/**
-		 * specifies whether to disable all other buttons on submit
-		 * @var bool
-		 */
-		protected $disableOnSubmit			= false;
 
 
 		/**
@@ -94,12 +80,6 @@
 			elseif( $field === 'src' ) {
 				return $this->src;
 			}
-			elseif( $field === 'submitText' ) {
-				return $this->submitText;
-			}
-			elseif( $field === 'disableOnSubmit' ) {
-				return $this->disableOnSubmit;
-			}
 			else {
 				return parent::__get( $field );
 			}
@@ -122,12 +102,6 @@
 			}
 			elseif( $field === 'src' ) {
 				$this->src = (string)$value;
-			}
-			elseif( $field === 'submitText' ) {
-				$this->submitText = (string)$value;
-			}
-			elseif( $field === 'disableOnSubmit' ) {
-				$this->disableOnSubmit = (bool)$value;
 			}
 			else {
 				parent::__set($field,$value);
@@ -168,12 +142,6 @@
 				$input->setAttribute( 'disabled', 'disabled' );
 			}
 
-			// disable all buttons onclick
-			if( $this->disableOnSubmit )
-			{
-				$input->appendAttribute( 'onclick', 'PHPRum.disableButtons(document.getElementById(\''.$this->getParentByType('\System\Web\WebControls\Form')->getHTMLControlId().'\'), this, \''.($this->submitText?$this->submitText:$this->text).'\');return true;' );
-			}
-
 			$input->setAttribute('onchange', '');
 			$input->setAttribute('onblur', '');
 			$input->setAttribute('onkeyup', '');
@@ -193,18 +161,13 @@
 		{
 			parent::onLoad();
 
-			$page = $this->getParentByType( '\System\Web\WebControls\Page' );
-			$page->addScript( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=/button/button.js' );
-
-			$page->addScript( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=/button/button.js' );
-
 			// perform ajax request
 			if( $this->ajaxPostBack )
 			{
 				$form = $this->getParentByType('\System\Web\WebControls\Form');
 				if($form)
 				{
-					$this->attributes->add('onclick', 'return PHPRum.submitForm(document.getElementById(\'' . $form->getHTMLControlId() . '\'), ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'PHPRum.evalFormResponse);' ));
+					$this->attributes->add('onclick', 'return Rum.submit(Rum.id(\'' . $form->getHTMLControlId() . '\'), ' . ( 'Rum.evalFormResponse);' ));
 				}
 			}
 		}

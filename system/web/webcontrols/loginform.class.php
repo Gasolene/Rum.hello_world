@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -20,10 +20,11 @@
 	 * @property string $successMsg Specifies the success message
 	 * @property string $emailFromAddress Specifies the from address of the email message
 	 * @property string $emailSubject Specifies the subject line of the email message
+	 * @property string $emailBody Specifies the body of the email message with template variables {username}, {url}
 	 * @property IMailClient $mailClient Specifies the mail client to send the message with
-	 * @property TextBox $username username control
-	 * @property TextBox $password password control
-	 * @property TextBox $new_password new password control when reseting password
+	 * @property Text $username username control
+	 * @property Text $password password control
+	 * @property Text $new_password new password control when reseting password
 	 *
 	 * @package			PHPRum
 	 * @subpackage		Web
@@ -84,6 +85,18 @@
 		 * @var string
 		 */
 		protected $emailSubject					= 'Password reset confirmation';
+
+		/**
+		 * Specifies the body when email is sent
+		 * @var string
+		 */
+		protected $emailBody					= "<p>Hi {username},</p>
+<p>You recently requested a new password.</p>
+<p>Please click the link below to complete your new password request:<br />
+<a href=\"{url}\">{url}</a>
+</p>
+<p>The link will remain active for one hour.</p>
+<p>If you did not authorize this request, please ignore this email.</p>";
 
 		/**
 		 * Specifies the mail client for sending
@@ -172,6 +185,10 @@
 			{
 				$this->emailSubject = (string)$value;
 			}
+			elseif( $field === 'emailBody' )
+			{
+				$this->emailBody = (string)$value;
+			}
 			elseif( $field === 'mailClient' )
 			{
 				if($value instanceof \System\Comm\Mail\IMailClient)
@@ -235,6 +252,10 @@
 			{
 				return $this->emailSubject;
 			}
+			elseif( $field === 'emailBody' )
+			{
+				return $this->emailBody;
+			}
 			elseif( $field === 'mailClient' )
 			{
 				return $this->mailClient;
@@ -268,22 +289,21 @@
 			parent::onInit();
 
 			$this->legend = "Login";
-			$this->add( new TextBox( 'username' ));
-			$this->add( new TextBox( 'password' ));
+			$this->add( new Text( 'username' ));
+			$this->add( new Password( 'password' ));
 			$this->add( new CheckBox( 'permanent' ));
 			$this->add( new Button( 'login', 'Login' ));
 			$this->add( new HyperLink( 'forgot_password', 'Forgot password', $this->getQueryString('?forgot_password=true') ));
 
-			$this->add( new TextBox( 'email' ));
+			$this->add( new Text( 'email' ));
 			$this->add( new Button( 'send_email', 'Reset password' ));
 
-			$this->add( new TextBox( 'new_password' ));
-			$this->add( new TextBox( 'confirm_password' ));
+			$this->add( new Password( 'new_password' ));
+			$this->add( new Password( 'confirm_password' ));
 			$this->add( new Button( 'reset_password', 'Reset password' ));
 
 			$this->getControl( 'username' )->label = 'User name';
 			$this->getControl( 'password' )->label = 'Password';
-			$this->getControl( 'password' )->mask = true;
 			$this->getControl( 'password' )->enableViewState = false;
 			$this->getControl( 'permanent' )->label = 'Remember me';
 			$this->getControl( 'forgot_password' )->visible = false;
@@ -294,11 +314,9 @@
 			$this->getControl( 'send_email' )->visible = false;
 
 			$this->getControl( 'new_password' )->visible = false;
-			$this->getControl( 'new_password' )->mask = true;
 			$this->getControl( 'new_password' )->enableViewState = false;
 			$this->getControl( 'new_password' )->label = 'New password';
 			$this->getControl( 'confirm_password' )->visible = false;
-			$this->getControl( 'confirm_password' )->mask = true;
 			$this->getControl( 'confirm_password' )->enableViewState = false;
 			$this->getControl( 'confirm_password' )->label = 'Confirm your password';
 			$this->getControl( 'reset_password' )->visible = false;
@@ -398,13 +416,9 @@
 							$mailMessage->to = $ds[$table["emailaddress-field"]];
 							if($this->emailFromAddress)$mailMessage->from = $this->emailFromAddress;
 							$mailMessage->subject = $this->emailSubject;
-							$mailMessage->body = "<p>Hi {$ds[$table["username-field"]]},</p>
-<p>You recently requested a new password.</p>
-<p>Please click the link below to complete your new password request:<br />
-<a href=\"{$url}\">{$url}</a>
-</p>
-<p>The link will remain active for one hour.</p>
-<p>If you did not authorize this request, please ignore this email.</p>";
+							$mailMessage->body = 
+								str_replace('{username}', $ds[$table["username-field"]], 
+								str_replace('{url}', $url, $this->emailBody));
 
 							$this->mailClient->send($mailMessage);
 							$app->messages->add(new \System\Base\AppMessage($this->passwordResetSentMsg, \System\Base\AppMessageType::Info()));
@@ -582,22 +596,18 @@
 				$dl->addChild($dd);
 			}
 
+			$dt = new \System\XML\DomObject('dt');
+			$dd = new \System\XML\DomObject('dd');
+			$dd->addChild($this->login->getDomObject());
+			$dd->addChild($this->send_email->getDomObject());
+			$dd->addChild($this->reset_password->getDomObject());
+			$dl->addChild($dt);
+			$dl->addChild($dd);
+
 			$fieldset->addChild($dl);
-
-			$div = new \System\XML\DomObject('div');
-			$div->setAttribute('class', 'buttons');
-			$div->addChild($this->login->getDomObject());
-			$div->addChild($this->send_email->getDomObject());
-			$div->addChild($this->reset_password->getDomObject());
-
 			$form->innerHtml .= $fieldset->fetch();
-			$form->innerHtml .= $div->fetch();
 
 			return $form;
-
-			$dom = parent::getDomObject();
-			$dom->appendAttribute( 'class', ' loginform' );
-			return $dom;
 		}
 	}
 ?>

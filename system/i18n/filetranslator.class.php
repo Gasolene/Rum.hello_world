@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\I18N;
 
@@ -42,14 +42,8 @@
 				$this->file = $file;
 			}
 
-			$this->langs = \System\Base\Build::get('langs'.$file);
-
-			if(!$this->langs)
-			{
-				$xmlParser = new \System\XML\XMLParser();
-				$this->langs = $xmlParser->parse(\file_get_contents($this->file));
-				\System\Base\Build::put('langs'.$file, $this->langs);
-			}
+			$xmlParser = new \System\XML\XMLParser();
+			$this->langs = $xmlParser->parse(\file_get_contents($this->file));
 		}
 
 

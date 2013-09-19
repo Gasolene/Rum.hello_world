@@ -55,21 +55,17 @@ ul.messages {
   position: relative;
 }
 
-ul.messages li .dismiss {
-  cursor: pointer;
-  font-style: italic;
-}
-
 ul.messages li {
-  -moz-border-radius:6px;
-  -webkit-border-radius:6px;
-  border-radius:6px;
+	-moz-border-radius:6px;
+	-webkit-border-radius:6px;
+	border-radius:6px;
   margin: 0px;
   padding-left: 40px;
   background-position: left;
   background-repeat: no-repeat;
   background-position: 6px 0px;
   line-height: 35px;
+  cursor: pointer;  
   margin-bottom: 5px;
 }
 
@@ -77,28 +73,28 @@ ul.messages li.info {
   color: #00529b;
   border: 1px solid #00529b;
   background-color: #bde5f8;
-  background-image: url("icons/info.png");
+  background-image: url("icons/Knob%20Info.png");
 }
 
 ul.messages li.success {
   color: #4f8a10;
   border: 1px solid #4f8a10;
   background-color: #dff2bf;
-  background-image: url("icons/success.png");
+  background-image: url("icons/Knob%20Valid%20Green.png");
 }
 
 ul.messages li.warning {
   color: #9f6000;
   border: 1px solid #9f6000;
   background-color: #feefb3;
-  background-image: url("icons/warning.png");
+  background-image: url("icons/Knob%20Attention.png");
 }
 
 ul.messages li.fail {
   color: #d8000c;
   border: 1px solid #d8000c;
   background-color: #ffbaba;
-  background-image: url("icons/fail.png");
+  background-image: url("icons/Knob%20Cancel.png");
 }
 
 

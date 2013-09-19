@@ -33,7 +33,7 @@
 	text-decoration:none;
 	text-shadow:1px 1px 0px #ffffff;
 	text-align: left;
-	padding-left: 10px;
+	padding-left: 20px;
 }
 
 .gridview thead th,
@@ -55,6 +55,7 @@
   font-size: 12px;
   line-height: 18px;
   padding-left: 10px;
+  
 }
 
 .gridview tbody tr:hover {
@@ -101,11 +102,6 @@
 }
 
 .gridview tfoot .next {
-}
-
-.gridview tfoot a,
-.gridview tfoot span {
-  padding-left: 4px;
 }
 
 .gridview .summary {
@@ -187,65 +183,13 @@
   height: 32px;
 }
 
-.gridview .textbox {
+.gridview thead .textbox {
   margin: 0px;
+  width: 50%;
   height: 20px;
   text-shadow: #ffffff 0px 0px 4px;
-  border: 0px;
+  border: 1px solid #677d81;
   background: none;
-}
-
-.gridview thead .textbox {
-  width: 50%;
-}
-
-/* Custom classes */
-
-.gridview .active {
-  width: 60px;
-}
-
-.gridview .edit {
-  width: 20px;
-}
-
-.gridview .delete {
-  width: 20px;
-}
-
-.gridview .button {
-  padding: 0px;
-}
-
-.gridview tbody .edit_action .button {
-  background: none;
-  border: none;
-  background-image: url(icons/edit.png);
-  background-position: center;
-  text-indent: -10000px;
-  width: 32px;
-  height: 32px;
-}
-
-.gridview tbody .delete_action .button,
-.gridview tbody .action .button {
-  background: none;
-  border: none;
-  background-image: url(icons/delete.png);
-  background-position: center;
-  text-indent: -10000px;
-  width: 32px;
-  height: 32px;
-}
-
-.gridview tfoot .action .button {
-  background: none;
-  border: none;
-  background-image: url(icons/add.png);
-  background-position: center;
-  text-indent: -10000px;
-  width: 32px;
-  height: 32px;
 }
 
 /*]]>*/-->

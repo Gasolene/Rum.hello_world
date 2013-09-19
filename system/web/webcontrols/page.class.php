@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -59,7 +59,7 @@
 		 * specifies whether object is currently rendering
 		 * @var bool
 		 */
-		private $_rendering				= false;
+		private $_rendering			= false;
 
 		/**
 		 * contains the buffer
@@ -105,6 +105,15 @@
 		public function __get( $field ) {
 			if( $field === 'onload' ) {
 				return $this->onload;
+			}
+			elseif( $field === 'submit' )
+			{
+				if(null===$this->findControl('submit')) {
+					throw new \System\Base\InvalidOperationException("ActiveRecordBase::form()->submit is no longer generated");
+				}
+				else {
+					return $this->findControl('submit');
+				}
 			}
 			else {
 				return parent::__get( $field );
@@ -301,20 +310,6 @@
 				throw new \System\Base\InvalidOperationException("cannot fetch while rendering");
 			}
 		}
-
-
-		/**
-		 * Event called when control is initiated
-		 *
-		 * @return void
-		 */
-		protected function onInit()
-        {
-			parent::onInit();
-
-			$this->addScript( \System\Web\WebApplicationBase::getInstance()->getPageURI(__MODULE_REQUEST_PARAMETER__, array('id'=>'core', 'type'=>'text/javascript')) . '&asset=/page/page.js' );
-			$this->onload .= 'PHPRum.asyncParameter = \''.__ASYNC_REQUEST_PARAMETER__.'\';';
-        }
 
 
 		/**

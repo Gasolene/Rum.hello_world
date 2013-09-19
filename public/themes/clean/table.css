@@ -126,11 +126,6 @@
 .gridview tfoot .next {
 }
 
-.gridview tfoot a,
-.gridview tfoot span {
-  padding-left: 4px;
-}
-
 .gridview .summary {
 }
 
@@ -237,7 +232,7 @@
   padding: 0px;
 }
 
-.gridview tbody .edit_action .button {
+.gridview .edit .button {
   background: none;
   border: none;
   background-image: url(icons/edit-icon.png);
@@ -248,8 +243,7 @@
   -moz-box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);-webkit-box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);
 }
 
-.gridview tbody .delete_action .button,
-.gridview tbody .action .button {
+.gridview .delete .button {
   background: none;
   border: none;
   background-image: url(icons/delete-icon.png);
@@ -260,14 +254,15 @@
   -moz-box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);-webkit-box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);
 }
 
-.gridview tfoot .action .button {
+.gridview tfoot .button.add {
+  display: block;
   background: none;
   border: none;
   background-image: url(icons/new-icon.png);
   background-position: center;
   text-indent: -10000px;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   -moz-box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);-webkit-box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);box-shadow:inset 0 0px 0 rgba(255,255,255,0.5);
 }
 

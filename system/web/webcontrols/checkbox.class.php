@@ -3,7 +3,7 @@
 	 * @license			see /docs/license.txt
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
-	 * @copyright		Copyright (c) 2011
+	 * @copyright		Copyright (c) 2013
 	 */
 	namespace System\Web\WebControls;
 
@@ -83,12 +83,12 @@
 
 			if( $this->autoPostBack )
 			{
-				$input->appendAttribute( 'onclick', 'document.getElementById(\''.$this->getParentByType( '\System\Web\WebControls\Form')->getHTMLControlId().'\').submit();' );
+				$input->appendAttribute( 'onclick', 'Rum.id(\''.$this->getParentByType( '\System\Web\WebControls\Form')->getHTMLControlId().'\').submit();' );
 			}
 
 			if( $this->ajaxPostBack )
 			{
-				$input->setAttribute( 'onchange', $this->ajaxHTTPRequest . ' = PHPRum.sendHttpRequest( \'' . $this->ajaxCallback . '\', \'' . $this->getHTMLControlId().'__post=1&'.$this->getHTMLControlId().'=\'+(this.checked?1:0)+\'&'.$this->getRequestData().'\', \'POST\', ' . ( $this->ajaxEventHandler?'\'' . addslashes( (string) $this->ajaxEventHandler ) . '\'':'function() { PHPRum.evalHttpResponse(\''.\addslashes($this->ajaxHTTPRequest).'\') }' ) . ' );' );
+				$input->setAttribute( 'onchange', 'Rum.evalAsync(\'' . $this->ajaxCallback . '\',\''.$this->getHTMLControlId().'=\'+(this.checked?1:0)+\'&'.$this->getRequestData().'\',\'POST\');' );
 			}
 
 			if( $this->ajaxValidation )
@@ -152,6 +152,7 @@
 					if( isset( $request[$this->getHTMLControlId()] ))
 					{
 						$this->value = true;
+						unset( $request[$this->getHTMLControlId()] );
 					}
 					else {
 						$this->value = false;
