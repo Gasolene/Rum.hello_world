@@ -14,13 +14,13 @@
 	 * @package			PHPRum
 	 * @author			Darnell Shinbine
 	 */
-	class GridViewStringFilter extends GridViewFilterBase
+	class GridViewTimeFilter extends GridViewFilterBase
 	{
 		/**
 		 * specifies control tool tip
 		 * @var string
 		 */
-		protected $tooltip					= 'Enter a string and press enter';
+		protected $tooltip					= 'Select a time';
 
 
 		/**
@@ -51,7 +51,7 @@
 		public function filterDataSet(\System\DB\DataSet &$ds)
 		{
 			if($this->value) {
-				$ds->filter($this->column->dataField, 'contains', $this->value, true );
+				$ds->filter($this->column->dataField, '=', $this->value, true );
 			}
 		}
 
@@ -69,21 +69,19 @@
 			$uri = \System\Web\WebApplicationBase::getInstance()->config->uri;
 
 			$input = new \System\XML\DomObject('input');
-			$input->setAttribute('type', 'search');
+			$input->setAttribute('type', 'time');
 			$input->setAttribute('name', "{$HTMLControlId}__filter_value");
 			$input->setAttribute('value', $this->value);
 			$input->setAttribute('title', $this->tooltip);
-			$input->setAttribute('class', 'stringfilter');
+			$input->setAttribute('class', 'timefilter');
 
 			if($this->column->gridView->ajaxPostBack)
 			{
 				$input->setAttribute( 'onchange', "Rum.evalAsync('{$uri}','{$requestString}&{$HTMLControlId}__filter_value='+this.value);" );
-				$input->setAttribute( 'onkeypress', "if(event.keyCode==13){event.returnValue=false;Rum.evalAsync('{$uri}','{$requestString}&{$HTMLControlId}__filter_value='+this.value);return false;}" );
 			}
 			else
 			{
 				$input->setAttribute( 'onchange', "if(this.value==''){Rum.sendSync('{$uri}','{$requestString}&{$HTMLControlId}__filter_value='+this.value);}" );
-				$input->setAttribute( 'onkeypress', "if(event.keyCode==13){event.returnValue=false;blur();Rum.sendSync('{$uri}','{$requestString}&{$HTMLControlId}__filter_value='+this.value);return false;}" );
 			}
 
 			return $input;
