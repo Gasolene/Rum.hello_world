@@ -77,7 +77,7 @@
 			$select = $this->createDomObject( 'select' );
 			$select->setAttribute( 'id', $this->getHTMLControlId());
 			$select->setAttribute( 'title', $this->tooltip );
-			$select->appendAttribute( 'class', ' listbox' );
+//			$select->appendAttribute( 'class', ' listbox' );
 			$select->setAttribute( 'size', $this->listSize );
 
 			if( $this->multiple )
@@ -163,8 +163,11 @@
 			$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.id('{$this->getHTMLControlId()}').length=0;");
 			foreach($this->items as $key=>$value)
 			{
+//				$key = htmlentities($key, ENT_QUOTES); // KLUDGE:
+				$key = str_replace('\'', '\\\'', $key);
 				$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.id('{$this->getHTMLControlId()}').options.add(new Option('{$key}', '{$value}'));");
 			}
+			$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.id('{$this->getHTMLControlId()}').value='{$this->value}';");
 		}
 	}
 ?>

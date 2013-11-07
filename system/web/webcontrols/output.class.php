@@ -15,14 +15,8 @@
 	 * @subpackage		Web
 	 *
 	 */
-	class Search extends InputBase
+	class Output extends DataFieldControlBase
 	{
-		/**
-		 * type
-		 * @ignore
-		 */
-		const type = 'search';
-
 		/**
 		 * getDomObject
 		 *
@@ -32,12 +26,15 @@
 		 */
 		public function getDomObject()
 		{
-			$input = $this->getInputDomObject();
-			$input->setAttribute( 'value', $this->value );
-//			$input->appendAttribute( 'class', ' '.self::type );
-			$input->setAttribute( 'type', self::type );
+			$output = $this->createDomObject( 'input' );
+			$output->setAttribute( 'name', $this->getHTMLControlId() );
+			$output->setAttribute( 'id', $this->getHTMLControlId() );
+			$output->setAttribute( 'value', $this->value );
 
-			return $input;
+			// Backwards compatability
+			$output->setAttribute( 'readonly', 'readonly' );
+
+			return $output;
 		}
 	}
 ?>

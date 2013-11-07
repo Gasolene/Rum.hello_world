@@ -23,6 +23,23 @@
 		 */
 		const type = 'date';
 
+
+		/**
+		 * process the HTTP request array
+		 *
+		 * @return void
+		 * @access public
+		 */
+		protected function onRequest( array &$httpRequest )
+		{
+			parent::onRequest($httpRequest);
+
+			if(strtotime($this->value)===false)
+			{
+				$this->value = null;
+			}
+		}
+
 		/**
 		 * getDomObject
 		 *
@@ -34,7 +51,7 @@
 		{
 			$input = $this->getInputDomObject();
 			$input->setAttribute( 'value', $this->value );
-			$input->appendAttribute( 'class', ' '.self::type );
+//			$input->appendAttribute( 'class', ' '.self::type );
 			$input->setAttribute( 'type', self::type );
 
 			return $input;

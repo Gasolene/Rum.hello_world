@@ -23,7 +23,6 @@
 	 * @property string $forward controller to forward to
 	 * @property bool $ajaxPostBack specifies whether to perform ajax postback, Default is false
 	 * @property bool $ajaxValidation specifies whether to perform ajax validation, Default is false
-	 * @property bool $autoFocus specifies whether to auto focus
 	 * @property string $honeyPot specifies the content of the honeypot field
 	 * @property string $submitted specifies if form was submitted
 	 * @property RequestParameterCollection $parameters form parameters
@@ -64,12 +63,6 @@
 		 * @var string
 		 */
 		protected $forward				= '';
-
-		/**
-		 * turn on or off auto focusing
-		 * @var bool
-		 */
-		protected $autoFocus			= false;
 
 		/**
 		 * turn on or off ajax post backs
@@ -192,10 +185,11 @@
 			}
 			elseif( $field === 'autoFocus' )
 			{
-				$this->autoFocus = (bool)$value;
+				trigger_error("Form::autoFocus is deprecated, use InputBase::autoFocus instead", E_USER_DEPRECATED);
 			}
 			elseif( $field === 'hiddenField' )
 			{
+				trigger_error("Form::hiddenField is deprecated, use Form::honeyPot instead", E_USER_DEPRECATED);
 				$this->honeyPot = (string)$value;
 			}
 			elseif( $field === 'honeyPot' )
@@ -204,6 +198,7 @@
 			}
 			elseif( $field === 'onPost' )
 			{
+				trigger_error("Form::onPost is deprecated", E_USER_DEPRECATED);
 				$this->onPost = (string)$value;
 			}
 			else
@@ -244,7 +239,8 @@
 			}
 			elseif( $field === 'autoFocus' )
 			{
-				return $this->autoFocus;
+				trigger_error("Form::autoFocus is deprecated, use InputBase::autoFocus instead", E_USER_DEPRECATED);
+				return false;
 			}
 			elseif( $field === 'ajaxPostBack' )
 			{
@@ -260,6 +256,7 @@
 			}
 			elseif( $field === 'onPost' )
 			{
+				trigger_error("Form::onPost is deprecated", E_USER_DEPRECATED);
 				return $this->onPost;
 			}
 			elseif( $field === 'submitted' )
@@ -289,20 +286,12 @@
 		/**
 		 * adds child control to collection
 		 *
-		 * @param  InputBase		&$control		instance of an InputBase
+		 * @param  DataFieldControlBase		&$control		instance of an DataFieldControlBase
 		 * @return void
 		 */
 		final public function add( WebControlBase $control )
 		{
 			return parent::addControl($control);
-//			if( $control instanceof InputBase || $control instanceof Fieldset )
-//			{
-//				return parent::addControl($control);
-//			}
-//			else
-//			{
-//				throw new \System\Base\InvalidArgumentException("Argument 1 passed to ".get_class($this)."::add() must be an object of type InputBase or Fieldset");
-//			}
 		}
 
 
@@ -331,7 +320,10 @@
 				// loop through child controls
 				foreach( $this->controls as $childControl )
 				{
-					$childControl->fillDataSource( $this->dataSource );
+					if( $childControl instanceof DataFieldControlBase || $childControl instanceof Fieldset ) // TODO: Rem backwards compatability code
+					{
+						$childControl->fillDataSource( $this->dataSource );
+					}
 				}
 
 				if( $this->dataSource instanceof \System\DB\DataSet )
@@ -363,20 +355,18 @@
 		 * @param  string $errMsg error message
 		 * @return bool
 		 */
-		public function validate(&$errMsg = '', InputBase &$controlToFocus = null)
+		public function validate(&$errMsg = '')
 		{
 			$valid = true;
 			for($i = 0; $i < $this->controls->count; $i++)
 			{
-				if( !$this->controls[$i]->validate( $errMsg, $controlToFocus ))
+				if( $this->controls[$i] instanceof InputBase || $this->controls[$i] instanceof Fieldset ) // TODO: Rem backwards compatability code
 				{
-					$valid = false;
+					if( !$this->controls[$i]->validate( $errMsg ))
+					{
+						$valid = false;
+					}
 				}
-			}
-
-			if( $this->autoFocus && !is_null( $controlToFocus ))
-			{
-				$controlToFocus->focus();
 			}
 
 			return $valid;
@@ -447,19 +437,22 @@
 				else
 				{
 					// create list item
-					if( !$childControl->visible )
-					{
-						$dt = '<dt style="display:none;">';
-						$dd = '<dd style="display:none;">';
-					}
-					else
-					{
-						$dt = '<dt>';
-						$dd = '<dd>';
-					}
+//					if( !$childControl->visible )
+//					{
+//						$dt = '<dt style="display:none;">';
+//						$dd = '<dd style="display:none;">';
+//					}
+//					else
+//					{
+//						$dt = '<dt>';
+//						$dd = '<dd>';
+//					}
+
+					$dt = '<dt>';
+					$dd = '<dd>';
 
 					// create label
-					$dt .= '<label class="'.($childControl->attributes->contains("class")?$childControl->attributes["class"]:'').'" for="'.$childControl->defaultHTMLControlId.'">' . $childControl->label . '</label>';
+					$dt .= '<label for="'.$childControl->getHTMLControlId().'">' . $childControl->label . '</label>';
 
 					// Get input control
 					$dd .= $childControl->fetch();
@@ -471,12 +464,23 @@
 						$childControl->validate($errMsg);
 					}
 
-					$dd .= $childControl->fetchError();
+					$dd .= $childControl->fetchError(array('class'=>'err_msg'));
 
 					$dl .= $dt . '</dt>';
 					$dl .= $dd . '</dd>';
 				}
 			}
+
+			$dt = '<dt>';
+			$dd = '<dd>';
+
+			foreach( $buttons as $button )
+			{
+				$dd .= $button->fetch();
+			}
+
+			$dl .= $dt . '</dt>';
+			$dl .= $dd . '</dd>';
 
 			if($dl)
 			{
@@ -487,15 +491,6 @@
 				$fieldset .= '</dl>';
 				$fieldset .= '</fieldset>';
 			}
-
-			$fieldset .= '<div class="buttons">';
-
-			foreach( $buttons as $button )
-			{
-				$fieldset .= $button->fetch();
-			}
-
-			$fieldset .= '</div>';
 
 			$form->innerHtml .= $fieldset;
 
@@ -516,7 +511,7 @@
 			$form->setAttribute( 'action', $this->action );
 			$form->setAttribute( 'method', strtolower( $this->method ));
 			$form->setAttribute( 'enctype', $this->encodeType );
-			$form->appendAttribute( 'class', ' form' );
+//			$form->appendAttribute( 'class', ' form' );
 
 			if( $this->_onsubmit )
 			{
@@ -641,12 +636,6 @@
 
 				unset( $request[ $this->getHTMLControlId() . '__submit'] );
 			}
-			elseif( $this->autoFocus && isset( $this->controls[0] ))
-			{
-				// auto focus first control
-				$childControl = $this->controls[0];
-				$childControl->focus();
-			}
 		}
 
 
@@ -682,7 +671,25 @@
 			// loop through input controls
 			foreach( $this->controls as $childControl )
 			{
-				$childControl->readDataSource( $this->dataSource );
+				if( $childControl instanceof DataFieldControlBase || $childControl instanceof Fieldset ) // TODO: Remove backwards compatibility code
+				{
+					$childControl->readDataSource( $this->dataSource );
+				}
+			}
+		}
+
+
+		/**
+		 * Event called on ajax callback
+		 *
+		 * @return void
+		 */
+		protected function onUpdateAjax()
+		{
+			// loop through input controls
+			foreach( $this->controls as $childControl )
+			{
+				$childControl->updateAjax();
 			}
 		}
 
@@ -698,7 +705,10 @@
 			$this->ajaxPostBack = (bool)$ajaxPostBack;
 			foreach( $this->controls as $childControl )
 			{
-				$childControl->ajaxPostBack = (bool)$ajaxPostBack;
+				if( $childControl instanceof InputBase || $childControl instanceof Fieldset ) // TODO: rem backwards compatability
+				{
+					$childControl->ajaxPostBack = (bool)$ajaxPostBack;
+				}
 			}
 		}
 
@@ -714,7 +724,10 @@
 			$this->ajaxValidation = (bool)$ajaxValidation;
 			foreach( $this->controls as $childControl )
 			{
-				$childControl->ajaxValidation = (bool)$ajaxValidation;
+				if( $childControl instanceof InputBase || $childControl instanceof Fieldset ) // TODO: rem backwards compatability
+				{
+					$childControl->ajaxValidation = (bool)$ajaxValidation;
+				}
 			}
 		}
 	}

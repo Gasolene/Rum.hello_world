@@ -15,6 +15,7 @@
 	 * @property int $pageSize
 	 * @property int $page
 	 * @property bool $canSort
+	 * @property bool $canFilter
 	 * @property bool $showFilters
 	 * @property bool $showHeader
 	 * @property bool $showFooter
@@ -30,10 +31,6 @@
 	 * @property string $listName
 	 * @property string $sortBy
 	 * @property string $sortOrder
-	 * @property string $onmouseover
-	 * @property string $onmouseout
-	 * @property string $onclick
-	 * @property string $ondblclick
 	 * @property bool $ajaxPostBack specifies whether to perform ajax postback on change, Default is false
 	 * @property bool $updateRowsOnly specifies whether to update rows only, or the entire table on updateAjax()
 	 *
@@ -67,6 +64,12 @@
 		 * @var bool
 		 */
 		protected $canSort					= true;
+
+		/**
+		 * Specifies if table is filterable, Default is true
+		 * @var bool
+		 */
+		protected $canFilter				= true;
 
 		/**
 		 * Specifies if table order can be changed, Default is false
@@ -166,25 +169,25 @@
 
 		/**
 		 * specifies the action to take on mouseover events
-		 * @var string
+		 * @ignore
 		 */
 		protected $onmouseover				= '';
 
 		/**
 		 * specifies the action to take on onmouseout events
-		 * @var string
+		 * @ignore
 		 */
 		protected $onmouseout				= '';
 
 		/**
 		 * specifies the action to take on click events
-		 * @var string
+		 * @ignore
 		 */
 		protected $onclick					= '';
 
 		/**
 		 * specifies the action to take on double click events
-		 * @var string
+		 * @ignore
 		 */
 		protected $ondblclick				= '';
 
@@ -226,13 +229,14 @@
 			$this->columns = new GridViewColumnCollection($this);
 
 			// event handling
-			$this->events->add(new \System\Web\Events\GridViewPostEvent());
+			$this->events->add(new \System\Web\Events\PagePostEvent());
 
 			// default events
 			$onPostMethod = 'on' . ucwords( $this->controlId ) . 'Post';
 			if(\method_exists(\System\Web\WebApplicationBase::getInstance()->requestHandler, $onPostMethod))
 			{
-				$this->events->registerEventHandler(new \System\Web\Events\GridViewPostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $onPostMethod));
+				trigger_error("GridViewPostEvent is deprecated, use PageRequestEvent instead", E_USER_DEPRECATED);
+				$this->events->registerEventHandler(new \System\Web\Events\PagePostEventHandler('\System\Web\WebApplicationBase::getInstance()->requestHandler->' . $onPostMethod));
 			}
 		}
 
@@ -253,6 +257,9 @@
 			}
 			elseif( $field === 'canSort' ) {
 				return $this->canSort;
+			}
+			elseif( $field === 'canFilter' ) {
+				return $this->canFilter;
 			}
 			elseif( $field === 'showFilters' ) {
 				return $this->showFilters;
@@ -300,15 +307,19 @@
 				return $this->sortOrder;
 			}
 			elseif( $field === 'onmouseover' ) {
+				trigger_error("GridView::onmouseover is deprecated, use GridView::render(args) instead", E_USER_DEPRECATED);
 				return $this->onmouseover;
 			}
 			elseif( $field === 'onmouseout' ) {
+				trigger_error("GridView::onmouseout is deprecated, use GridView::render(args) instead", E_USER_DEPRECATED);
 				return $this->onmouseout;
 			}
 			elseif( $field === 'onclick' ) {
+				trigger_error("GridView::onclick is deprecated, use GridView::render(args) instead", E_USER_DEPRECATED);
 				return $this->onclick;
 			}
 			elseif( $field === 'ondblclick' ) {
+				trigger_error("GridView::ondblclick is deprecated, use GridView::render(args) instead", E_USER_DEPRECATED);
 				return $this->ondblclick;
 			}
 			elseif( $field === 'ajaxPostBack' ) {
@@ -358,6 +369,9 @@
 			}
 			elseif( $field === 'canSort' ) {
 				$this->canSort = (bool)$value;
+			}
+			elseif( $field === 'canFilter' ) {
+				$this->canFilter = (bool)$value;
 			}
 			elseif( $field === 'canChangeOrder' ) {
 				$this->canChangeOrder = (bool)$value;
@@ -459,7 +473,7 @@
 		 */
 		public function insertRow()
 		{
-			$request = \System\Web\HTTPRequest::$request;
+			$request = \System\Web\HTTPRequest::$post;
 
 			if( $this->dataSource )
 			{
@@ -478,9 +492,9 @@
 					$this->dataSource[$pkey] = null;
 					foreach($this->dataSource->fields as $field)
 					{
-						if(isset($request[str_replace(' ', '_', $field).'_null']))
+						if(isset($request[str_replace(' ', '_', $field)]))
 						{
-							$this->dataSource[$field] = $request[str_replace(' ', '_', $field).'_null'];
+							$this->dataSource[$field] = $request[str_replace(' ', '_', $field)];
 						}
 					}
 					$this->dataSource->insert();
@@ -505,7 +519,7 @@
 		 */
 		public function updateRow($id)
 		{
-			$request = \System\Web\HTTPRequest::$request;
+			$request = \System\Web\HTTPRequest::$post;
 
 			if( $this->dataSource )
 			{
@@ -525,9 +539,9 @@
 					{
 						foreach($this->dataSource->fields as $field)
 						{
-							if(isset($request[str_replace(' ', '_', $field).'_'.$id]))
+							if(isset($request[str_replace(' ', '_', $field)]))
 							{
-								$this->dataSource[$field] = $request[str_replace(' ', '_', $field).'_'.$id];
+								$this->dataSource[$field] = $request[str_replace(' ', '_', $field)];
 							}
 						}
 						$this->dataSource->update();
@@ -634,7 +648,7 @@
 			if($this->events->contains( $filter_event )) {
 				$this->events->raise( $filter_event, $this );
 			}
-			else {
+			elseif($this->canFilter) {
 				// filter DataSet
 				$this->columns->filterDataSet( $this->dataSource );
 
@@ -660,7 +674,7 @@
 				}
 			}
 
-			if($update) {
+			if($update && \Rum::requestHandler()->isAjaxPostBack) {
 				$this->updateAjax();
 			}
 		}
@@ -688,7 +702,7 @@
 
 			// set some basic attributes/properties
 			$table->setAttribute( 'id', $this->getHTMLControlId() );
-			$table->appendAttribute( 'class', ' gridview' );
+//			$table->appendAttribute( 'class', ' gridview' );
 
 			$caption->nodeValue .= $this->caption;
 
@@ -776,9 +790,8 @@
 			 */
 			if( $this->showFooter ) {
 				$tr = $this->getRowFooter( $this->dataSource );
-				$tr->setAttribute( 'class', 'footer' );
 
-				$tfoot->addChild( $tr );
+				$tbody->addChild( $tr );
 			}
 
 			/**
@@ -922,79 +935,26 @@
 			if( isset( $request[$this->getHTMLControlId().'__sort_by'] ))
 			{
 				$this->sortBy = $request[$this->getHTMLControlId().'__sort_by'];
-				unset( $request[$this->getHTMLControlId().'__sort_by'] );
+//				unset( $request[$this->getHTMLControlId().'__sort_by'] );
 			}
 
 			if( isset( $request[$this->getHTMLControlId().'__sort_order'] ))
 			{
 				$this->sortOrder = $request[$this->getHTMLControlId().'__sort_order'];
-				unset( $request[$this->getHTMLControlId().'__sort_order'] );
+//				unset( $request[$this->getHTMLControlId().'__sort_order'] );
 			}
 
 			if( isset( $request[$this->getHTMLControlId().'__page'] ))
 			{
 				$this->page = (int) $request[$this->getHTMLControlId().'__page'];
-				unset( $request[$this->getHTMLControlId().'__page'] );
+//				unset( $request[$this->getHTMLControlId().'__page'] );
 			}
 
 			if( isset( $request[$this->getHTMLControlId().'__selected'] ))
 			{
 				$this->selected = $request[$this->getHTMLControlId().'__selected'];
-				unset( $request[$this->getHTMLControlId().'__selected'] );
+//				unset( $request[$this->getHTMLControlId().'__selected'] );
 			}
-/**
-			if( isset( $request[$this->getHTMLControlId().'__filter_name'] ))
-			{
-				if( isset( $request[$this->getHTMLControlId().'__filter_value'] ))
-				{
-					// filter results
-					$htmlId = $this->getHTMLControlId();
-
-					$this->filters[$request[$htmlId.'__filter_name']] = trim($request[$htmlId.'__filter_value']);
-
-					if(!$this->filters[$request[$htmlId.'__filter_name']])
-					{
-					}
-					elseif($this->filters[$request[$htmlId.'__filter_name']] == 'true')
-					{
-						$this->filters[$request[$htmlId.'__filter_name']] = '1';
-					}
-					elseif($this->filters[$request[$htmlId.'__filter_name']] == 'false')
-					{
-						$this->filters[$request[$htmlId.'__filter_name']] = '0';
-					}
-
-					unset( $request[$this->getHTMLControlId().'__filter_value'] );
-				}
-
-				unset( $request[$this->getHTMLControlId().'__filter_name'] );
-			}
-*/
-			// filter results
-//			if( $this->filters ) {
-//				$filter_event = new \System\Web\Events\GridViewFilterEvent();
-//
-//				if($this->events->contains( $filter_event )) {
-//					$this->events->raise( $filter_event, $this );
-//				}
-//				else {
-//					// filter DataSet
-//					foreach( $this->filters as $column=>$value) {
-//						if(strlen($value)>0) {
-//							if(isset($this->filterValues[$column])) {
-//								$this->dataSource->filter( $column, '=', $value, true );
-//							}
-//							else {
-//								$this->dataSource->filter( $column, 'contains', $value, true );
-//							}
-//						}
-//					}
-//
-//					if($this->ajaxPostBack) {
-//						$this->updateAjax();
-//					}
-//				}
-//			}
 		}
 
 
@@ -1006,7 +966,7 @@
 		 */
 		protected function onPost( array &$request )
 		{
-			$this->events->raise(new \System\Web\Events\GridViewPostEvent(), $this, $request);
+			$this->events->raise(new \System\Web\Events\PagePostEvent(), $this, $request);
 			$this->columns->handlePostEvents( $request );
 		}
 
@@ -1056,11 +1016,25 @@
 			$page = $this->getParentByType('\System\Web\WebControls\Page');
 
 			if($this->updateRowsOnly) {
+				$tbody = \addslashes(str_replace("\n", '', str_replace("\r", '', str_replace("<tbody>", '', str_replace("</tbody>", '', $this->getDomObject()->tbody->fetch())))));
+				$tfoot = \addslashes(str_replace("\n", '', str_replace("\r", '', str_replace("<tfoot>", '', str_replace("</tfoot>", '', $this->getDomObject()->tfoot->fetch())))));
+
+				// Update rows
 				$page->loadAjaxJScriptBuffer('var tbody1 = Rum.id(\''.$this->getHTMLControlId().'\').getElementsByTagName(\'tbody\')[0];');
 				$page->loadAjaxJScriptBuffer('var tbody2 = document.createElement(\'tbody\');');
-				$page->loadAjaxJScriptBuffer('tbody2.innerHTML = \''.\addslashes(str_replace("\n", '', str_replace("\r", '', str_replace("<tbody>", '', str_replace("</tbody>", '', $this->getDomObject()->tbody->fetch()))))).'\';');
+				$page->loadAjaxJScriptBuffer('tbody2.innerHTML = \''.$tbody.'\';');
 				$page->loadAjaxJScriptBuffer('tbody1.parentNode.insertBefore(tbody2, tbody1);');
 				$page->loadAjaxJScriptBuffer('tbody1.parentNode.removeChild(tbody1);');
+
+				if($this->showPageNumber)
+				{
+					// Update footer
+					$page->loadAjaxJScriptBuffer('var tfoot1 = Rum.id(\''.$this->getHTMLControlId().'\').getElementsByTagName(\'tfoot\')[0];');
+					$page->loadAjaxJScriptBuffer('var tfoot2 = document.createElement(\'tfoot\');');
+					$page->loadAjaxJScriptBuffer('tfoot2.innerHTML = \''.$tfoot.'\';');
+					$page->loadAjaxJScriptBuffer('tfoot1.parentNode.insertBefore(tfoot2, tfoot1);');
+					$page->loadAjaxJScriptBuffer('tfoot1.parentNode.removeChild(tfoot1);');
+				}
 			}
 			else {
 				// KLUDGE!
@@ -1151,7 +1125,7 @@
 						$order = "asc";
 					}
 
-					$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__sort_by='.($column['DataField']).'&'.$this->getHTMLControlId().'__sort_order='.$order));
+					$a->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__sort_by='.($column['DataField']).'&'.$this->getHTMLControlId().'__sort_order='.$order));
 
 					// add link node to column
 					$th->addChild( $a );
@@ -1426,8 +1400,8 @@
 				}
 				else
 				{
-					$up->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor));
-					$down->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor));
+					$up->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor));
+					$down->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor));
 				}
 
 				$up->setAttribute('class', 'move_up');
@@ -1489,6 +1463,9 @@
 			// create footer node
 			$tr = new \System\XML\DomObject( 'tr' );
 
+			// set row attributes
+			$tr->setAttribute( 'class', ($this->dataSource->cursor % 2)?'row_alt':'row' );
+
 			// add blank listcolumn
 			if( $this->valueField && $this->showList ) {
 				$td = new \System\XML\DomObject( 'td' );
@@ -1518,12 +1495,6 @@
 				$tr->addChild( $td );
 			}
 
-			if($this->canChangeOrder)
-			{
-				$td = new \System\XML\DomObject('td');
-				$tr->addChild( $td );
-			}
-
 			return $tr;
 		}
 
@@ -1536,35 +1507,31 @@
 		protected function getPagination( )
 		{
 			$tr = new \System\XML\DomObject( 'tr' );
-			$tr->setAttribute( 'class', 'pagenumbers' );
 
 			$td = new \System\XML\DomObject( 'td' );
 			$inc = 0;
 			if( $this->valueField && $this->showList ) {
 				$inc++;
 			}
-			if($this->canChangeOrder) {
-				$inc++;
-			}
 
 			$td->setAttribute( 'colspan', sizeof( $this->columns ) + $inc );
 
 			$span = new \System\XML\DomObject( 'span' );
-			$span->setAttribute( 'class', 'pages' );
+			$span->setAttribute( 'class', 'pagination' );
 
 			// prev
 			$a = new \System\XML\DomObject( 'a' );
 			$a->nodeValue .= 'prev';
-			$a->setAttribute('class', 'prev');
 			if( $this->page > 1 )
 			{
-				$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.($this->page-1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
+				$a->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.($this->page-1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
 			}
 			else
 			{
-				$a->appendAttribute('class', ' disabled');
+				$a->setAttribute('class', 'disabled');
 			}
 			$span->addChild( $a );
+			$span->addChild( new \System\XML\TextNode(' '));
 
 			// page jump
 			$count = $this->dataSource->count;
@@ -1585,33 +1552,34 @@
 				if( $this->page <> $page )
 				{
 					$a = new \System\XML\DomObject( 'a' );
-					$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.$page.'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
+					$a->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$page.'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
 					$a->nodeValue .= $page;
-					$a->setAttribute( 'class', 'page' );
 					$span->addChild( $a );
+					$span->addChild( new \System\XML\TextNode(' '));
 				}
 				else
 				{
-					$a = new \System\XML\DomObject( 'span' );
-					$a->setAttribute( 'class', 'page current' );
+					$a = new \System\XML\DomObject( 'a' );
+					$a->setAttribute( 'class', 'current' );
 					$a->nodeValue .= $page;
 					$span->addChild( $a );
+					$span->addChild( new \System\XML\TextNode(' '));
 				}
 			}
 
 			// next
 			$a = new \System\XML\DomObject( 'a' );
 			$a->nodeValue .= 'next';
-			$a->setAttribute('class', 'next');
 			if(( $this->page * $this->pageSize ) < $this->dataSource->count && $this->pageSize )
 			{
-				$a->setAttribute( 'href', $this->getQueryString('?'.$this->getHTMLControlId().'__page='.($this->page+1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
+				$a->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.($this->page+1).'&'.$this->getHTMLControlId().'__sort_by='.$this->sortBy.'&'.$this->getHTMLControlId().'__sort_order='.$this->sortOrder));
 			}
 			else
 			{
-				$a->appendAttribute('class', ' disabled');
+				$a->setAttribute('class', 'disabled');
 			}
 			$span->addChild( $a );
+			$span->addChild( new \System\XML\TextNode(' '));
 
 			$td->addChild( $span );
 
@@ -1631,7 +1599,7 @@
 
 			$span = new \System\XML\DomObject( 'span' );
 			$span->setAttribute('class', 'summary');
-			$span->nodeValue .= "showing $start to $end of " . $this->dataSource->count;
+			$span->nodeValue .= "showing {$start} to {$end} of " . $this->dataSource->count;
 
 			$td->addChild( $span );
 			$tr->addChild( $td );

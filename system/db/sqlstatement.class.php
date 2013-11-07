@@ -114,7 +114,15 @@
 
 			$preparedStatement = $this->statement;
 			foreach($this->parameters as $parameter => $value) {
-				$preparedStatement = str_replace("@{$parameter}", $this->dataAdapter->escapeString($value), $preparedStatement);
+				if(strpos($value, '0x' )===0) {
+					$preparedStatement = str_replace("@{$parameter}", $value, $preparedStatement);
+				}
+				elseif(is_string($value)) {
+					$preparedStatement = str_replace("@{$parameter}", '\''.$this->dataAdapter->escapeString($value).'\'', $preparedStatement);
+				}
+				else {
+					$preparedStatement = str_replace("@{$parameter}", (real)$value, $preparedStatement);
+				}
 			}
 			return $preparedStatement;
 		}
@@ -131,7 +139,9 @@
 
 
 		/**
-		 * run query
+		 * execute an SQL statement
+		 * Executes a prepared statement bound to parameters specified by the @symbol
+		 * e.g. SELECT * FROM `table` WHERE user=@user
 		 *
 		 * @param  array	$parameters	array of parameters to bind
 		 * @return void
@@ -160,7 +170,7 @@
 		 * @ignore
 		 */
 		final public function runQuery() {
-			trigger_error("SQLStatement::runQuery() is deprecated, use SQLStatement::execute() instead");
+			//trigger_error("SQLStatement::runQuery() is deprecated, use SQLStatement::execute() instead");
 			$this->execute();
 		}
 

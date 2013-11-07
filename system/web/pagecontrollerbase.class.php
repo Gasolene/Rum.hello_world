@@ -304,10 +304,10 @@
 				{
 					foreach(\System\Web\WebApplicationBase::getInstance()->messages as $msg)
 					{
-						$this->page->loadAjaxJScriptBuffer("Rum.flash( '".\str_replace("\n", '', \str_replace("\r", '', \nl2br(\addslashes($msg->message))))."', '".\strtolower($msg->type)."');");
+						$this->page->loadAjaxJScriptBuffer("Rum.flash( '".\str_replace("\n", '', \str_replace("\r", '', \addslashes($msg->message)))."', '".\strtolower($msg->type)."');");
 					}
 
-					\System\Web\WebApplicationBase::getInstance()->messages->removeAll();
+					//\System\Web\WebApplicationBase::getInstance()->messages->removeAll();
 				}
 
 				if(\System\Web\WebApplicationBase::getInstance()->forwardURI)

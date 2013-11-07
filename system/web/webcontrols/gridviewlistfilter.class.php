@@ -95,6 +95,29 @@
 
 
 		/**
+		 * handle load events
+		 *
+		 * @return void
+		 */
+		protected function onLoad()
+		{
+			if(!$this->textField && !$this->valueField)
+			{
+				if($this->column instanceof GridViewDropDownList)
+				{
+					$this->textField = $this->column->textField;
+					$this->valueField = $this->column->valueField;
+				}
+				else
+				{
+					$this->textField = $this->column->dataField;
+					$this->valueField = $this->column->dataField;
+				}
+			}
+		}
+
+
+		/**
 		 * set column
 		 * @param array $values array of values
 		 * @return void
@@ -152,7 +175,7 @@
 			$select = new \System\XML\DomObject( 'select' );
 			$select->setAttribute('name', "{$HTMLControlId}__filter_value");
 			$select->setAttribute('title', $this->tooltip);
-			$select->setAttribute('class', 'listfilter');
+//			$select->setAttribute('class', 'listfilter');
 			$option = new \System\XML\DomObject( 'option' );
 			$option->setAttribute('value', '');
 			$option->nodeValue = '';

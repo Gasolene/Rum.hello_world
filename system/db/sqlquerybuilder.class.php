@@ -161,8 +161,23 @@
 		 */
 		final public function select( $table = '*', $column = '*', $alias = '' ) {
 			$this->setMainClause( 'select' );
-			$this->addColumn( $table, $column, $alias );
+			if($table) {
+				$this->addColumn( $table, $column, $alias );
+			}
 			return $this;
+		}
+
+
+		/**
+		 * add column
+		 *
+		 * @return void
+		 */
+		final public function column( $table = '*', $column = '*', $alias = '' ) {
+			$this->columns[] = array(
+				  'table'  => (string) $table
+				, 'column' => (string) $column
+				, 'alias'  => $alias?(string)$alias:(string)$column );
 		}
 
 
@@ -541,11 +556,12 @@
 
 
 		/**
-		 * get SQL query
+		 * get prepared SQL statement as string
 		 *
-		 * @return string SQL query
+		 * @param  array	$parameters	array of parameters to bind
+		 * @return string
 		 */
-		public function getPreparedStatement() {
+		public function getPreparedStatement(array $parameters = array()) {
 
 			// select
 			if( $this->mainClause === 'select' ) {
@@ -861,7 +877,7 @@ having';
 			$sql .= isset( $havingClause )?$havingClause:'';
 
 			$this->prepare($sql);
-			return parent::getPreparedStatement();
+			return parent::getPreparedStatement($parameters);
 		}
 	}
 ?>

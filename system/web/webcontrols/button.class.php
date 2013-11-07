@@ -44,7 +44,8 @@
 		{
 			parent::__construct( $controlId );
 
-			$this->text = $text?$text:$this->label;
+			$this->text = $text?$text:$controlId;
+			$this->label = '';
 
 			// event handling
 			$this->events->add(new \System\Web\Events\InputPostEvent());
@@ -120,7 +121,7 @@
 		{
 			$input = $this->getInputDomObject();
 			$input->setAttribute( 'value', $this->text );
-			$input->appendAttribute( 'class', ' button' );
+//			$input->appendAttribute( 'class', ' button' );
 
 			if( $this->src )
 			{
@@ -201,6 +202,17 @@
 			}
 
 			parent::onRequest( $request );
+		}
+
+
+		/**
+		 * Event called on ajax callback
+		 *
+		 * @return void
+		 */
+		protected function onUpdateAjax()
+		{
+			$this->getParentByType('\System\Web\WebControls\Page')->loadAjaxJScriptBuffer("Rum.id('{$this->getHTMLControlId()}').value='$this->text';");
 		}
 	}
 ?>

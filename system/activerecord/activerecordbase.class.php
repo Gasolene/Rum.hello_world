@@ -44,6 +44,12 @@
 		protected $pkey				= '';
 
 		/**
+		 * Specifies the sort key
+		 * @var string
+		**/
+		protected $sortKey			= '';
+
+		/**
 		 * Specifies table relationships
 		 * @var array
 		**/
@@ -63,6 +69,7 @@
 		 */
 		final protected function __construct()
 		{
+			if(!$this->sortKey) $this->sortKey = $this->pkey;
 			$this->init();
 		}
 
@@ -615,9 +622,9 @@
 		 * @param  array		$args		associative array of keys and values
 		 * @return DataSet
 		 */
-		static public function all( array $args = array() )
+		static public function all( array $columns = array(), array $filter = array(), array $sort_by = array(), $offset = 0, $limit = 0 )
 		{
-			return ActiveRecordBase::allByType( self::getClass(), $args );
+			return ActiveRecordBase::allByType( self::getClass(), $columns, $filter, $sort_by, $offset, $limit );
 		}
 
 
@@ -631,10 +638,10 @@
 		 * @param  int			$limit		resultset limit
 		 * @return DataSet
 		 */
-		static public function filter( array $columns = array(), array $filter = array(), array $sort_by = array(), $offset = 0, $limit = 0 )
-		{
-			return ActiveRecordBase::filterByType( self::getClass(), $columns, $filter, $sort_by, $offset, $limit );
-		}
+//		static public function filter( array $columns = array(), array $filter = array(), array $sort_by = array(), $offset = 0, $limit = 0 )
+//		{
+//			return ActiveRecordBase::allByType( self::getClass(), $columns, $filter, $sort_by, $offset, $limit );
+//		}
 
 
 		/**
@@ -702,8 +709,8 @@
 							$ds = $class::all();
 							$label = \substr( strrchr( $mapping['type'], '\\'), 1 );
 
-							$control->textField = $mapping["columnRef"];
-							$control->valueField = $mapping["columnRef"];
+							$control->textField = isset($mapping["columnText"])?$mapping["columnText"]:$mapping["columnRef"];
+							$control->valueField = $mapping["columnKey"];
 							$control->dataSource = $ds;
 							$control->label = ucwords( \System\Base\ApplicationBase::getInstance()->translator->get( $label, $label ));
 
@@ -883,11 +890,13 @@
 									$options[$row[$mapping["columnRef"]]] = $row;
 								}
 
-								continue;
+								break;
 							}
 						}
 
 						$column = new \System\Web\WebControls\GridViewDropDownList($field, $activeRecord->pkey, $options, $param, $header);
+						$column->textField = isset($mapping["columnText"])?$mapping["columnText"]:$mapping["columnRef"];
+						$column->valueField = $mapping["columnRef"];
 						$column->setFilter(new \System\Web\WebControls\GridViewListFilter($options));
 					}
 					// create selection list
@@ -919,7 +928,17 @@
 					else if($type === 'date')
 					{
 						$column = new \System\Web\WebControls\GridViewDate($field, $activeRecord->pkey, $param, $header);
-						$column->setFilter(new \System\Web\WebControls\GridViewDateRangeFilter());
+						$column->setFilter(new \System\Web\WebControls\GridViewDateFilter());
+					}
+					else if($type === 'time')
+					{
+						$column = new \System\Web\WebControls\GridViewTime($field, $activeRecord->pkey, $param, $header);
+						$column->setFilter(new \System\Web\WebControls\GridViewTimeFilter());
+					}
+					else if($type === 'datetime')
+					{
+						$column = new \System\Web\WebControls\GridViewDateTime($field, $activeRecord->pkey, $param, $header);
+						$column->setFilter(new \System\Web\WebControls\GridViewDateTimeFilter());
 					}
 					else if($type === 'boolean')
 					{
@@ -1570,7 +1589,7 @@
 							$query->leftJoin( $this->table, $mapping['columnKey'], $mapping['table'], $mapping['columnRef'], $joinTable );
 						}
 
-						$query->where( $joinTable, $mapping['columnRef'], '=', $this[$mapping['columnKey']] );
+						$query->where( $joinTable, $mapping['columnKey'], '=', $this[$mapping['columnKey']] );
 
 						return $query->openDataSet();
 					}
@@ -1795,65 +1814,44 @@
 
 		/**
 		 * static method to return a DataSet by type
-		 *
-		 * @param  string		$type		object type
-		 * @param  array		$args		filter
-		 * @return DataSet
-		 */
-		static private function allByType( $type, array $args = array() )
-		{
-			$activeRecord = new $type();
-
-			// build query
-			$query = \System\Base\ApplicationBase::getInstance()->dataAdapter->queryBuilder()
-			->select( '*' )
-			->from( $activeRecord->table );
-
-			// filter
-			foreach( $args as $key => $value )
-			{
-				$field = explode('.', $key);
-				if(count($field)==2) {
-					$query->where( $field[0], $field[1], '=', $value );
-				}
-				else {
-					$query->where( $activeRecord->table, $key, '=', $value );
-				}
-			}
-
-			// sort
-			if( $activeRecord->pkey )
-			{
-				$query->orderBy( $activeRecord->table, $activeRecord->pkey );
-			}
-
-			return $query->openDataSet();
-		}
-
-
-		/**
-		 * static method to return a filtered DataSet by type
 		 * 
 		 * @param  string		$type		object type
-		 * @param  array			$columns	array of column names to return
-		 * @param  array			$filter		associative array of column names and values to filter
-		 * @param  array			$sort_by	array of column names to sort by
+		 * @param  array		$columns	array of column names to return
+		 * @param  array		$filter		associative array of column names and values to filter
+		 * @param  array		$sort_by	array of column names to sort by
 		 * @param  int			$offset		number of records to offset
 		 * @param  int			$limit		resultset limit
 		 * @return DataSet
 		 */
-		static private function filterByType( $type, array $columns = array(), array $filter = array(), array $sort_by = array(), $offset = 0, $limit = 0 )
+		static private function allByType( $type, array $columns = array(), array $filter = array(), array $sort_by = array(), $offset = 0, $limit = 0 )
 		{
-			throw new \System\Base\MethodNotImplementedException();
+			// TODO: rem backwards compatibility code
+			if((bool)count(array_filter(array_keys($columns), 'is_string')) && !$filter && !$sort_by && !$offset && ~$limit) {
+				$filter = $columns;
+				$columns = array();
+			}
+
 			$activeRecord = new $type();
 
 			// build query
-			$query = \System\Base\ApplicationBase::getInstance()->dataAdapter->queryBuilder()
-			->select( '*' )
-			->from( $activeRecord->table );
+			$query = \System\Base\ApplicationBase::getInstance()->dataAdapter->queryBuilder()->select();
+
+			// columns
+			foreach( $columns as $column )
+			{
+				$field = explode('.', $column);
+				if(count($field)==2) {
+					$query->column( $field[0], $field[1] );
+				}
+				else {
+					$query->column( $activeRecord->table, $column );
+				}
+			}
+
+			$query->from( $activeRecord->table );
 
 			// filter
-			foreach( $args as $key => $value )
+			foreach( $filter as $key => $value )
 			{
 				$field = explode('.', $key);
 				if(count($field)==2) {
@@ -1865,9 +1863,26 @@
 			}
 
 			// sort
-			if( $activeRecord->pkey )
+			if($sort_by)
 			{
-				$query->orderBy( $activeRecord->table, $activeRecord->pkey );
+				foreach( $sort_by as $key )
+				{
+					$field = explode('.', $key);
+					if(count($field)==2) {
+						$query->orderBy( $field[0], $field[1] );
+					}
+					else {
+						$query->orderBy( $activeRecord->table, $key );
+					}
+				}
+			}
+			elseif($activeRecord->sortKey)
+			{
+				$query->orderBy( $activeRecord->table, $activeRecord->sortKey );
+			}
+
+			if((int)$limit>0) {
+//				$query->limit($limit); // TODO: implement
 			}
 
 			return $query->openDataSet();

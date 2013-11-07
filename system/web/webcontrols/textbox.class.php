@@ -61,6 +61,23 @@
 
 
 		/**
+		 * Constructor
+		 *
+		 * The constructor sets attributes based on session data, triggering events, and is responcible for
+		 * formatting the proper request value and garbage handling
+		 *
+		 * @param  string   $controlId	  Control Id
+		 * @param  string   $default		Default value
+		 * @return void
+		 */
+		public function __construct( $controlId, $default = null )
+		{
+			trigger_error("TextBox is deprecated, use Text instead", E_USER_DEPRECATED);
+			parent::__construct( $controlId, $default );
+		}
+
+
+		/**
 		 * gets object property
 		 *
 		 * @param  string	$field		name of field
@@ -73,6 +90,9 @@
 			}
 			elseif( $field === 'mask' ) {
 				return $this->mask;
+			}
+			elseif( $field === 'watermark' ) {
+				return $this->placeholder;
 			}
 			elseif( $field === 'maxLength' ) {
 				return $this->maxLength;
@@ -103,6 +123,10 @@
 		public function __set( $field, $value ) {
 			if( $field === 'size' ) {
 				$this->size = (int)$value;
+			}
+			elseif( $field === 'watermark' ) {
+				trigger_error("Text::watermark is deprecated, use Text::placeholder instead", E_USER_DEPRECATED);
+				$this->placeholder = (string)$value;
 			}
 			elseif( $field === 'mask' ) {
 				$this->mask = (bool)$value;
