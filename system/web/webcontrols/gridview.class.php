@@ -20,7 +20,7 @@
 	 * @property bool $showHeader
 	 * @property bool $showFooter
 	 * @property bool $showPageNumber
-	 * @property bool $showPrimaryKey
+	 * @property bool $showInsertRow
 	 * @property bool $showList
 	 * @property bool $autoGenerateColumns
 	 * @property string $valueField
@@ -102,10 +102,10 @@
 		protected $showPageNumber			= true;
 
 		/**
-		 * Set to display primary key in view, Default is false
+		 * Set to display insert row, Default is false
 		 * @var bool
 		 */
-		protected $showPrimaryKey			= false;
+		protected $showInsertRow			= false;
 
 		/**
 		 * Show list view, default is false
@@ -274,7 +274,10 @@
 				return $this->showPageNumber;
 			}
 			elseif( $field === 'showPrimaryKey' ) {
-				return $this->showPrimaryKey;
+				return false;
+			}
+			elseif( $field === 'showInsertRow' ) {
+				return $this->showInsertRow;
 			}
 			elseif( $field === 'showList' ) {
 				return $this->showList;
@@ -389,7 +392,10 @@
 				$this->showPageNumber = (bool)$value;
 			}
 			elseif( $field === 'showPrimaryKey' ) {
-				$this->showPrimaryKey = (bool)$value;
+				trigger_error("GridView::showPrimaryKey is deprecated", E_USER_DEPRECATED);
+			}
+			elseif( $field === 'showInsertRow' ) {
+				$this->showInsertRow = (bool)$value;
 			}
 			elseif( $field === 'showList' ) {
 				$this->showList = (bool)$value;
@@ -702,7 +708,6 @@
 
 			// set some basic attributes/properties
 			$table->setAttribute( 'id', $this->getHTMLControlId() );
-//			$table->appendAttribute( 'class', ' gridview' );
 
 			$caption->nodeValue .= $this->caption;
 
@@ -779,6 +784,15 @@
 				$this->dataSource->next();
 			}
 
+			/**
+			 * Insert row
+			 */
+			if( $this->showInsertRow ) {
+				$tr = $this->getInsertRow();
+
+				$tbody->addChild( $tr );
+			}
+
 			/**********************************************************************
 			 *
 			 * <tfoot>
@@ -791,7 +805,7 @@
 			if( $this->showFooter ) {
 				$tr = $this->getRowFooter( $this->dataSource );
 
-				$tbody->addChild( $tr );
+				$tfoot->addChild( $tr );
 			}
 
 			/**
@@ -1065,7 +1079,7 @@
 				$th = new \System\XML\DomObject( 'th' );
 
 				// set column attributes
-				$th->setAttribute( 'class', 'listcolumn' );
+//				$th->setAttribute( 'class', 'listcolumn' );
 				$th->innerHtml .= $this->listName;
 
 				if( $this->multiple )
@@ -1142,12 +1156,12 @@
 				$tr->addChild( $th );
 			}
 
-			if($this->canChangeOrder)
-			{
-				$th = new \System\XML\DomObject('th');
-				$th->setAttribute( 'class', 'movecolumn' );
-				$tr->addChild( $th );
-			}
+//			if($this->canChangeOrder)
+//			{
+//				$th = new \System\XML\DomObject('th');
+//				$th->setAttribute( 'class', 'movecolumn' );
+//				$tr->addChild( $th );
+//			}
 
 			return $tr;
 		}
@@ -1168,9 +1182,6 @@
 
 				// create column node (field)
 				$th = new \System\XML\DomObject( 'td' );
-
-				// set column attributes
-				$th->setAttribute( 'class', 'listcolumn' );
 
 				// add thead to table
 				$tr->addChild( $th );
@@ -1308,16 +1319,12 @@
 				// create column node (field)
 				$td = new \System\XML\DomObject( 'td' );
 
-				// set column attributes
-				$td->setAttribute( 'class', 'list' );
-
 				$input = new \System\XML\DomObject( 'input' );
 				$input->setAttribute( 'type',	( $this->multiple?'checkbox':'radio' ) );
 				$input->setAttribute( 'onclick', 'if(this.checked)this.checked=false;else this.checked=true;' );
 				$input->setAttribute( 'id', $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds[$this->valueField] ));
 				$input->setAttribute( 'name', $this->getHTMLControlId() . '__selected' . ( $this->multiple?'[]':'' ));
 				$input->setAttribute( 'value', $ds[$this->valueField] );
-				$input->setAttribute( 'class', $this->getHTMLControlId() . '__checkbox' );
 
 				if( $this->multiple ) {
 					if( is_array( $this->selected )) {
@@ -1387,37 +1394,37 @@
 				$tr->addChild( $td );
 			}
 
-			if($this->canChangeOrder)
-			{
-				$td = new \System\XML\DomObject('td');
-				$up = new \System\XML\DomObject('a');
-				$down = new \System\XML\DomObject('a');
-
-				if($this->ajaxPostBack)
-				{
-					$up->setAttribute( 'onclick', 'Rum.evalAsync(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'Rum.gridViewAjaxCallback\');');
-					$down->setAttribute( 'onclick', 'Rum.evalAsync(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'Rum.gridViewAjaxCallback\');');
-				}
-				else
-				{
-					$up->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor));
-					$down->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor));
-				}
-
-				$up->setAttribute('class', 'move_up');
-				$down->setAttribute('class', 'move_down');
-
-				$up->setAttribute('title', 'Move up');
-				$down->setAttribute('title', 'Move down');
-
-				$up->nodeValue = 'Move up';
-				$down->nodeValue = 'Move down';
-
-				// add td element to tr
-				$td->addChild( $up );
-				$td->addChild( $down );
-				$tr->addChild( $td );
-			}
+//			if($this->canChangeOrder)
+//			{
+//				$td = new \System\XML\DomObject('td');
+//				$up = new \System\XML\DomObject('a');
+//				$down = new \System\XML\DomObject('a');
+//
+//				if($this->ajaxPostBack)
+//				{
+//					$up->setAttribute( 'onclick', 'Rum.evalAsync(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'Rum.gridViewAjaxCallback\');');
+//					$down->setAttribute( 'onclick', 'Rum.evalAsync(\'' . $this->getQueryString() . '\', \'?'.$this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor.'\', \'POST\', \'Rum.gridViewAjaxCallback\');');
+//				}
+//				else
+//				{
+//					$up->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=up&'.$this->getHTMLControlId().'__move='.$ds->cursor));
+//					$down->setAttribute( 'href', $this->getQueryString($this->getHTMLControlId().'__page='.$this->page.'&'.$this->getHTMLControlId().'__move_order=down&'.$this->getHTMLControlId().'__move='.$ds->cursor));
+//				}
+//
+//				$up->setAttribute('class', 'move_up');
+//				$down->setAttribute('class', 'move_down');
+//
+//				$up->setAttribute('title', 'Move up');
+//				$down->setAttribute('title', 'Move down');
+//
+//				$up->nodeValue = 'Move up';
+//				$down->nodeValue = 'Move down';
+//
+//				// add td element to tr
+//				$td->addChild( $up );
+//				$td->addChild( $down );
+//				$tr->addChild( $td );
+//			}
 
 			// parse event string
 			foreach( $ds->fields as $field ) {
@@ -1454,6 +1461,52 @@
 
 
 		/**
+		 * generic method for handling the table insert row
+		 *
+		 * @return DomObject
+		 */
+		protected function getInsertRow( )
+		{
+			// create footer node
+			$tr = new \System\XML\DomObject( 'tr' );
+
+			// set row attributes
+			$tr->setAttribute( 'class', ($this->dataSource->cursor % 2)?'insert row_alt':'insert row' );
+
+			// add blank listcolumn
+			if( $this->valueField && $this->showList ) {
+				$td = new \System\XML\DomObject( 'td' );
+				$tr->addChild( $td );
+			}
+
+			// loop through each column
+			foreach( $this->columns as $column )
+			{
+				// create column node
+				$td = new \System\XML\DomObject( 'td' );
+
+				// set column attributes
+				if( $column['Classname'] ) {
+					$td->setAttribute( 'class', $column['Classname'] );
+				}
+
+				if( $column instanceof GridViewControlBase ) {
+					$html = $column->fetchInsertControl();
+					$insertText = '';
+					if(false === eval("\$insertText ={$html};")) {
+						throw new \System\Base\InvalidOperationException("Could not run expression in GridView on column `".$column["DataField"]."`: \$html = " . ($html) . ';');
+					}
+					$td->innerHtml .= $insertText;
+				}
+
+				$tr->addChild( $td );
+			}
+
+			return $tr;
+		}
+
+
+		/**
 		 * generic method for handling the table footer
 		 *
 		 * @return DomObject
@@ -1464,7 +1517,7 @@
 			$tr = new \System\XML\DomObject( 'tr' );
 
 			// set row attributes
-			$tr->setAttribute( 'class', ($this->dataSource->cursor % 2)?'row_alt':'row' );
+			$tr->setAttribute( 'class', ($this->dataSource->cursor % 2)?'footer row_alt':'footer row' );
 
 			// add blank listcolumn
 			if( $this->valueField && $this->showList ) {
@@ -1560,7 +1613,7 @@
 				else
 				{
 					$a = new \System\XML\DomObject( 'a' );
-					$a->setAttribute( 'class', 'current' );
+					$a->setAttribute( 'class', 'disabled' );
 					$a->nodeValue .= $page;
 					$span->addChild( $a );
 					$span->addChild( new \System\XML\TextNode(' '));
@@ -1621,7 +1674,7 @@
 
 				foreach( $this->dataSource->fieldMeta as $field )
 				{
-					if( !$field->primaryKey || $this->showPrimaryKey )
+					if( !$field->primaryKey )
 					{
 						if( $field->boolean )
 						{

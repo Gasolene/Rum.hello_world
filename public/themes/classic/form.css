@@ -93,16 +93,12 @@ fieldset input.invalid {
   border: 1px solid #FF0000;
 }
 
-fieldset span.err_msg {
+fieldset span.warning {
   display: block;
   padding-left: 20px;
   background-image: url("images/exclamation.png");
   background-repeat: no-repeat;
   color: #FF0000;
-}
-
-form .buttons {
-  text-align: right;
 }
 
 /*]]>*/-->
