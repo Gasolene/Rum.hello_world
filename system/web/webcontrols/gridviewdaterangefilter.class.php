@@ -57,10 +57,12 @@
 		public function filterDataSet(\System\DB\DataSet &$ds)
 		{
 			if($this->minValue) {
-				$ds->filter($this->column->dataField, '<=', $this->minValue );
+				$ds->filter($this->column->dataField, '<=', date('Y-m-d', strtotime($this->minValue)));
+				$this->column->gridView->needsUpdating = true;
 			}
 			if($this->maxValue) {
-				$ds->filter($this->column->dataField, '>=', $this->maxValue );
+				$ds->filter($this->column->dataField, '>=', date('Y-m-d', strtotime($this->maxValue)));
+				$this->column->gridView->needsUpdating = true;
 			}
 		}
 

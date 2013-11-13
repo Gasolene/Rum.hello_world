@@ -326,13 +326,24 @@
 				return $this->updateRowsOnly;
 			}
 			elseif( $field === 'filters' ) {
-				trigger_error("GridView::filters is deprecated, use GridView::getFilters() instead", E_USER_DEPRECATED);
 				$filters = array();
 				foreach($this->columns as $column) {
 					if( $column->filter ) {
-						$value = $column->filter->getValue();
-						if( $value ) {
-							$filters[$column->dataField] = $value;
+						if($column->filter instanceof GridViewRangeFilterBase) {
+							$minValue = $column->filter->getMinValue();
+							if( $minValue ) {
+								$filters[$column->dataField]['Min'] = $minValue;
+							}
+							$maxValue = $column->filter->getMaxValue();
+							if( $maxValue ) {
+								$filters[$column->dataField]['Max'] = $maxValue;
+							}
+						}
+						else {
+							$value = $column->filter->getValue();
+							if( $value ) {
+								$filters[$column->dataField] = $value;
+							}
 						}
 					}
 				}
@@ -651,10 +662,6 @@
 			elseif($this->canFilter) {
 				// filter DataSet
 				$this->columns->filterDataSet( $this->dataSource );
-
-				if($this->ajaxPostBack) {
-					$update = true;
-				}
 			}
 
 			// sort results
@@ -669,13 +676,9 @@
 					$this->dataSource->sort( $this->sortBy, (strtolower($this->sortOrder)=='asc'?false:true), true );
 
 					if($this->ajaxPostBack) {
-						$update = true;
+						$this->needsUpdating = true;
 					}
 				}
-			}
-
-			if($update && \Rum::requestHandler()->isAjaxPostBack) {
-				$this->updateAjax();
 			}
 		}
 
@@ -980,13 +983,14 @@
 
 
 		/**
-		 * handle post events
+		 * Event called when control is ready for rendering
 		 *
 		 * @return void
 		 */
 		protected function onPreRender()
 		{
 			$this->applyFilterAndSort();
+			parent::onPreRender();
 		}
 
 
@@ -1314,22 +1318,22 @@
 					if( is_array( $this->selected )) {
 						if( array_search( $ds[$this->valueField], $this->selected ) !== false ) {
 							$input->setAttribute( 'checked', 'checked' );
-							$tr->appendAttribute( 'class', ' selected' );
+							$tr->setAttribute( 'class', ' selected' );
 						}
 					}
 				}
 				else {
 					if( $this->selected === $ds[$this->valueField] ) {
 						$input->setAttribute( 'checked', 'checked' );
-						$tr->appendAttribute( 'class', ' selected' );
+						$tr->setAttribute( 'class', ' selected' );
 					}
 
-					$tr->appendAttribute( 'onclick', 'Rum.gridViewUnSelectAll( \'' . $this->getHTMLControlId() . '\' );' );
+					$tr->setAttribute( 'onclick', 'Rum.gridViewUnSelectAll( \'' . $this->getHTMLControlId() . '\' );' );
 				}
 
-				$tr->appendAttribute( 'onclick', 'if( Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { Rum.id(\''. (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = false; } else { Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = true; }' );
-				$tr->appendAttribute( 'onclick', 'if( Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'row\' ) { this.className = \'selected row\'; } else { this.className = \'selected row_alt\'; }}' );
-				$tr->appendAttribute( 'onclick', 'if(!Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'selected row\' ) { this.className = \'row\'; } else { this.className = \'row_alt\'; }}' );
+				$tr->setAttribute( 'onclick', 'if( Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { Rum.id(\''. (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = false; } else { Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked = true; }' );
+				$tr->setAttribute( 'onclick', 'if( Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'row\' ) { this.className = \'selected row\'; } else { this.className = \'selected row_alt\'; }}' );
+				$tr->setAttribute( 'onclick', 'if(!Rum.id(\'' . (string) $this->getHTMLControlId() . '__item_' . \rawurlencode( $ds->row[$this->valueField] ) . '\').checked ) { if(this.className === \'selected row\' ) { this.className = \'row\'; } else { this.className = \'row_alt\'; }}' );
 
 				// add td element to tr
 				$td->addChild( $input );
