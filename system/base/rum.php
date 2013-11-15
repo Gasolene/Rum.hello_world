@@ -91,6 +91,11 @@
 	if( !defined( '__DB_SCHEMA_VERSION_TABLENAME__' ))	define( '__DB_SCHEMA_VERSION_TABLENAME__',	'db_schema_version' );
 
 	/**
+	 * specifies the user defaults table name
+	 */
+	if( !defined( '__USERDEFAULTS_TABLENAME__' ))		define( '__USERDEFAULTS_TABLENAME__',		'user_defaults' );
+
+	/**
 	 * specifies the cache table name
 	 */
 	if( !defined( '__CACHE_TABLENAME__' ))				define( '__CACHE_TABLENAME__',				'cache' );
@@ -136,7 +141,7 @@
 	if( !defined( '__ASYNC_REQUEST_PARAMETER__' ))		define( '__ASYNC_REQUEST_PARAMETER__',		'async' );
 
 	/**
-	 * specifies the async request parameter
+	 * specifies the module request parameter
 	 */
 	if( !defined( '__MODULE_REQUEST_PARAMETER__' ))		define( '__MODULE_REQUEST_PARAMETER__',		'modules' );
 
@@ -194,6 +199,11 @@
 	 * specifies the asyncronous validation timeout
 	 */
 	if( !defined( '__VALIDATION_TIMEOUT__' ))			define( '__VALIDATION_TIMEOUT__',			'3000' );
+
+	/**
+	 * specifies the asyncronous flash message timeout
+	 */
+	if( !defined( '__FLASH_MSG_TIMEOUT__' ))			define( '__FLASH_MSG_TIMEOUT__',			'3000' );
 
 	/**
 	 * specifies the number of warnings to dump

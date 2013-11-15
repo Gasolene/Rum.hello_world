@@ -37,21 +37,20 @@
 
 
 		/**
-		 * Function to flash a new message
+		 * Function to flash a new message for n milliseconds
 		 */
-		this.flash = function(message, type) {
+		this.flash = function(message, type, delay) {
+			if(!delay) delay = 3000;
 			if(this.id('messages')) {
-				var a = document.createElement('a');
 				var li = document.createElement('li');
 				var text = document.createTextNode(message);
 				li.setAttribute('class', type);
-				a.appendChild(document.createTextNode(' dismiss'));
-				a.setAttribute('class', 'dismiss');
-				a.setAttribute('title', 'Dismiss');
-				addListener(a, 'click', function(){li.style.display='none';});
+//				addListener(a, 'click', function(){li.style.display='none';});
 				li.appendChild(text);
-				li.appendChild(a);
 				this.id('messages').appendChild(li);
+				setTimeout(function() {
+					fadeOut(li);
+				}, delay);
 			}
 		};
 
@@ -86,8 +85,10 @@
 			var inputs = element.getElementsByTagName('input');
 			var selects = element.getElementsByTagName('select');
 			for (x=0;x<inputs.length;x++) {
-				if(params) params = params + '&';
-				params = params + inputs[x].getAttribute('name') + '=' + inputs[x].value;
+				if(inputs[x].getAttribute('type')!='button' && inputs[x].getAttribute('type')!='submit' && inputs[x].getAttribute('type')!='image') {
+					if(params) params = params + '&';
+					params = params + inputs[x].getAttribute('name') + '=' + inputs[x].value;
+				}
 			}
 			for (x=0;x<selects.length;x++) {
 				if(params) params = params + '&';
@@ -451,6 +452,10 @@
 			return null;
 		};
 
+
+		/**
+		 * add listener to element
+		 */
 		addListener = function(element, eventName, handler) {
 		  if (element.addEventListener) {
 			element.addEventListener(eventName, handler, false);
@@ -461,5 +466,88 @@
 		  else {
 			element['on' + eventName] = handler;
 		  }
+		}
+
+
+		/**
+		 * set opacity of element
+		 */
+		setOpacity = function(element, level) {
+			if(level===0) {
+				element.parentNode.removeChild(element);
+			}
+			else {
+				element.style.opacity = level;
+				element.style.MozOpacity = level;
+				element.style.KhtmlOpacity = level;
+				element.style.filter = "alpha(opacity=" + (level * 100) + ");";
+			}
+		}
+
+
+		/**
+		 * fadeout timer handler
+		 */
+		createTimeoutHandler = function( element, level ) {
+			return function() { setOpacity( element, level ); };
+		}
+
+
+		/**
+		 * fadeout element for n milliseconds
+		 */
+		fadeOut = function(element, duration) {
+			var steps = 20;
+			if(!duration) duration = 1000; // duration of fadeout
+			for (var i = 1; i <= steps; i++) {
+				setTimeout( createTimeoutHandler( element, 1-i/steps ), (i/steps) * duration);
+			}
+		}
+
+		// GridView methods
+
+		/**
+		 * gridViewToggleDisplay
+		 *
+		 * toggle display attribute of table nodes
+		 *
+		 * @param	controlId		name of control
+		 * @return	TRUE if successfull
+		 */
+		Rum.gridViewSelectAll = function( controlId )
+		{
+			var table = document.getElementById( controlId );
+			var selectAll = document.getElementById( controlId + "__selectall" );
+			var checkBoxes = table.getElementsByTagName( 'input' );
+
+			for( var i = 0; i < checkBoxes.length; i++ )
+			{
+				if( checkBoxes[i].className == controlId + '__checkbox' )
+				{
+					checkBoxes[i].checked = selectAll.checked;
+				}
+			}
+		}
+
+
+		/**
+		 * gridViewUnSelectAll
+		 *
+		 * toggle display attribute of table nodes
+		 *
+		 * @param	controlId		name of control
+		 * @return	TRUE if successfull
+		 */
+		Rum.gridViewUnSelectAll = function( controlId ) {
+			var trTags = document.getElementById( controlId ).getElementsByTagName( 'tr' );
+
+			for( var i = 0; i < trTags.length; i++ ) {
+				if( trTags[i].className == 'selected row' ) {
+					trTags[i].className = 'row';
+				}
+				if( trTags[i].className == 'selected row_alt' ) {
+					trTags[i].className = 'row_alt';
+				}
+			}
 		}
 	};
