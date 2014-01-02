@@ -157,7 +157,9 @@
 		{
 			if($this->value) {
 				$ds->filter($this->column->dataField, '=', $this->value, true );
-				$this->column->gridView->needsUpdating = true;
+				if($this->column->gridView->canUpdateView) {
+					$this->column->gridView->needsUpdating = true;
+				}
 			}
 		}
 
@@ -182,13 +184,18 @@
 			$option->nodeValue = '';
 			$select->addChild($option);
 
-			// get values
+			// parse values
+			$values = array();
 			foreach($this->values as $key=>$value)
 			{
-				if(is_array($value)) {
-					$key = $value[$this->textField];
-					$value = $value[$this->valueField];
+				if(is_array($value))
+				{
+					$values[$value[$this->textField]] = $value[$this->valueField];
 				}
+			}
+
+			foreach($values as $key=>$value)
+			{
 				$option = new \System\XML\DomObject( 'option' );
 				$option->setAttribute('value', $value);
 				$option->nodeValue = $key;

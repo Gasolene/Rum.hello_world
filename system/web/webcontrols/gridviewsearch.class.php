@@ -9,13 +9,13 @@
 
 
 	/**
-	 * Represents a GridView TextArea
+	 * Represents a GridView Search
 	 * 
 	 * @package			PHPRum
 	 * @subpackage		Web
 	 * @author			Darnell Shinbine
 	 */
-	class GridViewTextArea extends GridViewControlBase
+	class GridViewSearch extends GridViewControlBase
 	{
 		/**
 		 * get item text
@@ -28,11 +28,11 @@
 			{
 				$uri = \Rum::config()->uri;
 				$params = $this->getRequestData() . "&".$this->formatParameter($this->pkey)."='.\\rawurlencode(%{$this->pkey}%).'&{$this->parameter}=\'+this.value+\'";
-				return "'<textarea name=\"{$this->parameter}\" onchange=\"Rum.evalAsync(\'{$uri}/\',\'".$this->escape($params)."\',\'POST\');\">'.\Rum::escape(%{$this->dataField}%).'</textarea>'";
+				return "'<input name=\"{$this->parameter}\" type=\"search\" value=\"'.%{$this->dataField}%.'\" onchange=\"Rum.evalAsync(\'{$uri}/\',\'".$this->escape($params)."\',\'POST\');\" />'";
 			}
 			else
 			{
-				return "'<textarea name=\"{$this->parameter}\">'.\Rum::escape(%{$this->dataField}%).'</textarea>'";
+				return "'<input name=\"{$this->parameter}\" type=\"search\" value=\"'.%{$this->dataField}%.'\"/>'";
 			}
 		}
 
@@ -43,7 +43,7 @@
 		 */
 		public function fetchInsertControl()
 		{
-			return "'<textarea name=\"{$this->parameter}\"></textarea>'";
+			return "'<input name=\"{$this->parameter}\" type=\"search\"/>'";
 		}
 	}
 ?>
