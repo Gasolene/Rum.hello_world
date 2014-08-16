@@ -129,7 +129,14 @@
 		{
 			if( $this->pdo )
 			{
-				return $this->pdo->query( $query );
+				try
+				{
+					return $this->pdo->query( $query );
+				}
+				catch(\Exception $e)
+				{
+					throw new \System\DB\DatabaseException($e->getMessage());
+				}
 			}
 			else
 			{
@@ -189,6 +196,7 @@
 			$databaseProperties = array();
 			$tableSchemas = array();
 
+			// TODO: Fix, will not work with all db adapters
 			$tables = $this->runQuery( "SHOW TABLES" );
 //			$tables = $this->runQuery( "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';" );
 
@@ -226,12 +234,10 @@
 
 				$tableSchemas[] = new \System\DB\TableSchema($tableProperties, $foreignKeys, $columnSchemas);
 			}
-			
+
 			return new \System\DB\DatabaseSchema($databaseProperties, $tableSchemas);
-					
 		}
 
-		
 
 		/**
 		 * creats a TableSchema object
@@ -240,12 +246,13 @@
 		 */
 		public function addTableSchema( \System\DB\TableSchema &$tableSchema )
 		{
+			$primaryKeys = array();
+			$indexKeys = array();
+			$uniqueKeys = array();
 			$columns = "";
+
 			foreach($tableSchema->columnSchemas as $columnSchema)
 			{
-				$primaryKeys = array();
-				$indexKeys = array();
-				$uniqueKeys = array();
 				$type = "";
 
 				if($columnSchema->integer)
@@ -472,7 +479,7 @@
 		 */
 		public function beginTransaction()
 		{
-			return new PDOTransaction($this);
+			return new PDOTransaction($this->pdo);
 		}
 
 

@@ -81,7 +81,6 @@
 						'name' => 'datetime',
 						'table' => $this->table,
 						'type' => 'DATETIME',
-						'primaryKey' => true,
 						'length' => 30,
 						'notNull' => true,
 						'datetime' => true)),

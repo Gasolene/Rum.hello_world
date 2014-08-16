@@ -457,6 +457,45 @@
 
 
 		/**
+		 * returns the environment
+		 *
+		 * @return  string
+		 */
+		final protected function getEnv()
+		{
+			$env = '';
+			if(isset($_SERVER["APP_ENV"]))
+			{
+				$env = $_SERVER["APP_ENV"];
+			}
+			else
+			{
+				$env = '';
+			}
+
+			if($env===__DEV_ENV__ || $env===__TEST_ENV__ || !$env)
+			{
+				if(isset(\System\Web\HTTPRequest::$request[\Rum::config()->requestParameter])&&strpos(\System\Web\HTTPRequest::$request[\Rum::config()->requestParameter], 'dev')===0)
+				{
+					// kludge handle
+					if(strpos(\System\Web\HTTPRequest::$request[\Rum::config()->requestParameter], 'run_')!==false ||
+							\System\Web\HTTPRequest::$request["id"]==='run_all')
+					{
+						$env = __TEST_ENV__;
+					}
+					else
+					{
+						$env =__DEV_ENV__;
+					}
+	//				end kludge
+				}
+			}
+
+			return $env;
+		}
+
+
+		/**
 		 * execute the application
 		 *
 		 * @return  void
@@ -564,7 +603,8 @@
 								$outputCacheId = 'output:'.$hash.$requestHandler->getCacheId();
 
 								// Output Cache Exists
-								if( \System\Web\WebApplicationBase::getInstance()->cache->get( $outputCacheId ))
+								$outputCache = \System\Web\WebApplicationBase::getInstance()->cache->get( $outputCacheId );
+								if( $outputCache && !isset( $request["nocache"] ))
 								{
 									$response = new \System\Web\HTTPResponse();
 									$headers = \System\Web\WebApplicationBase::getInstance()->cache->get($headersCacheId);
@@ -646,8 +686,16 @@
 				}
 				else
 				{
-					// Not Authenticated
-					\System\Security\Authentication::redirectToLogin();
+					if( isset( $request->request["async"] ))
+					{
+						// Not Authenticated
+						\Rum::sendHTTPError(401);
+					}
+					else
+					{
+						// Not Authenticated
+						\System\Security\Authentication::redirectToLogin();
+					}
 				}
 			}
 		}
@@ -718,6 +766,7 @@
 
 							\System\Web\HTTPResponse::clear();
 							\System\Web\HTTPResponse::write("console.log('".(str_replace("\n", '', str_replace("\r", '', $content)))."');");
+							\System\Web\HTTPResponse::write("alert('An unhandled exception occurred during execution, please check logs');");
 							\System\Web\HTTPResponse::end();
 						}
 					}
@@ -1285,7 +1334,12 @@ No building is needed or allowed in a production environment.</p>
 				ob_start();
 				foreach($this->session->getSessionData() as $key=>$value)
 				{
-					print("[{$key}] => {$value}\n");
+					if(is_array($value)) {
+						print("[{$key}] => ".  serialize($value)."\n");
+					}
+					else {
+						print("[{$key}] => {$value}\n");
+					}
 				}
 				$output = ob_get_clean();
 				\System\Web\HTTPResponse::write( \Rum::escape( $this->replaceNonPrinting( $output )));

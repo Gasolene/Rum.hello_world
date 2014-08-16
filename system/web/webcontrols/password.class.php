@@ -78,30 +78,6 @@
 
 
 		/**
-		 * read view state from session
-		 *
-		 * @param  array	&$viewState	session array
-		 * @return void
-		 */
-		protected function onLoadViewState( array &$viewState )
-		{
-			return;
-		}
-
-
-		/**
-		 * write view state to session
-		 *
-		 * @param  array	&$viewState	session array
-		 * @return void
-		 */
-		protected function onSaveViewState( array &$viewState )
-		{
-			return;
-		}
-
-
-		/**
 		 * Event called on ajax callback
 		 *
 		 * @return void
@@ -124,7 +100,7 @@
 
 			if( $this->ajaxPostBack || $this->ajaxValidation )
 			{
-				$input->setAttribute( 'onkeyup', 'if(Rum.isReady(\''.$this->getHTMLControlId().'__err\')){' . 'Rum.evalAsync(\'' . $this->ajaxCallback . '\',\'' . $this->getHTMLControlId().'=\'+this.value+\'&'.$this->getRequestData().'\',\'POST\');}' );
+				$input->setAttribute( 'onkeyup', 'if(Rum.isReady(\''.$this->getHTMLControlId().'__err\')){' . 'Rum.evalAsync(\'' . $this->ajaxCallback . '\',\'' . $this->getHTMLControlId().'=\'+encodeURIComponent(this.value)+\'&'.$this->getRequestData().'\',\'POST\');}' );
 			}
 
 			if( $this->visible )

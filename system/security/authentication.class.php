@@ -124,6 +124,15 @@
 				}
 			}
 
+			// Authenticate using credentials tables
+			foreach( \System\Base\ApplicationBase::getInstance()->config->authenticationCredentialsLDAP as $credential ) {
+				$credential = new LDAPCredential($credential);
+
+				if( $credential->authorize( $username ) ) {
+					return true;
+				}
+			}
+
 			// Invalid credentials
 			return false;
 		}
@@ -184,7 +193,7 @@
 			if( \System\Security\Authentication::isProtected( \System\Web\WebApplicationBase::getInstance()->requestHandler->controllerId ))
 			{
 				$denyRoles = array();
-				$allowRoles = array();
+//				$allowRoles = array();
 
 				if(\System\Web\WebApplicationBase::getInstance()->requestHandler->denyRoles)
 				{
@@ -201,6 +210,7 @@
 						$denyRoles = \Rum::config()->authorizationDeny;
 					}
 				}
+
 				$allowRoles = \System\Web\WebApplicationBase::getInstance()->requestHandler->getRoles();
 				if(!$allowRoles)
 				{
@@ -461,7 +471,7 @@
 		 */
 		private static function getAuthStatus( $username, $password ) {
 
-			// Authenticate using credentials users
+			// Authenticate using user credentials
 			foreach( \System\Base\ApplicationBase::getInstance()->config->authenticationCredentialsUsers as $credential ) {
 				$credential = new UserCredential($credential);
 
@@ -474,6 +484,16 @@
 			// Authenticate using credentials tables
 			foreach( \System\Base\ApplicationBase::getInstance()->config->authenticationCredentialsTables as $credential ) {
 				$credential = new TableCredential($credential);
+
+				$status = $credential->authenticate( $username, $password );
+				if( !$status->invalidCredentials() ) {
+					return $status;
+				}
+			}
+
+			// Authenticate using LDAP
+			foreach( \System\Base\ApplicationBase::getInstance()->config->authenticationCredentialsLDAP as $credential ) {
+				$credential = new LDAPCredential($credential);
 
 				$status = $credential->authenticate( $username, $password );
 				if( !$status->invalidCredentials() ) {

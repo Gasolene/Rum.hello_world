@@ -41,6 +41,10 @@
 					$this->value = $request[$HTMLControlId . '__filter_value'];
 //					unset($request[$HTMLControlId . '__filter_value']);
 				}
+				else
+				{
+					$this->value = null;
+				}
 			}
 		}
 
@@ -99,11 +103,11 @@
 
 			if($this->column->gridView->ajaxPostBack)
 			{
-				$select->setAttribute( 'onchange', "Rum.evalAsync('{$uri}', '{$requestString}&{$HTMLControlId}__filter_value='+this.value);" );
+				$select->setAttribute( 'onchange', "Rum.evalAsync('{$uri}/', '{$requestString}&{$HTMLControlId}__filter_value='+encodeURIComponent(this.value));" );
 			}
 			else
 			{
-				$select->setAttribute( 'onchange', "Rum.sendSync('{$uri}', '{$requestString}&{$HTMLControlId}__filter_value='+this.value);" );
+				$select->setAttribute( 'onchange', "Rum.sendSync('{$uri}/', '{$requestString}&{$HTMLControlId}__filter_value='+encodeURIComponent(this.value));" );
 			}
 
 			return $select;

@@ -1043,7 +1043,8 @@
 			// Update only tbody element
 			$page = $this->getParentByType('\System\Web\WebControls\Page');
 
-			$tbody = \addslashes(str_replace("<tbody>", '', str_replace("</tbody>", '', $this->getDomObject()->tbody->fetch())));
+//			$tbody = \addslashes(str_replace("<tbody>", '', str_replace("</tbody>", '', $this->getDomObject()->tbody->fetch())));
+			$tbody = \addslashes(str_replace("<tbody>", '', str_replace("</tbody>", '', trim(preg_replace('/\n+/','' ,preg_replace('/\r+/','' ,$this->getDomObject()->tbody->fetch()))))));
 
 			// Update rows
 			$page->loadAjaxJScriptBuffer('var tbody1 = Rum.id(\''.$this->getHTMLControlId().'\').getElementsByTagName(\'tbody\')[0];');
@@ -1251,11 +1252,11 @@
 
 						if($this->ajaxPostBack)
 						{
-							$select->setAttribute( 'onchange', "Rum.sendSync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
+							$select->setAttribute( 'onchange', "Rum.sendSync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+encodeURIComponent(this.value));" );
 						}
 						else
 						{
-							$select->setAttribute( 'onchange', "Rum.sendSync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
+							$select->setAttribute( 'onchange', "Rum.sendSync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+encodeURIComponent(this.value));" );
 						}
 
 						$th->addChild( $select );
@@ -1274,12 +1275,12 @@
 
 						if($this->ajaxPostBack)
 						{
-							$input->setAttribute( 'onchange',													  "Rum.sendAsync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);" );
-							$input->setAttribute( 'onkeypress', "if(event.keyCode == 13){event.returnValue = false;Rum.sendAsync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);};" );
+							$input->setAttribute( 'onchange',													  "Rum.sendAsync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+encodeURIComponent(this.value));" );
+							$input->setAttribute( 'onkeypress', "if(event.keyCode == 13){event.returnValue = false;Rum.sendAsync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+encodeURIComponent(this.value));};" );
 						}
 						else
 						{
-							$input->setAttribute( 'onkeypress', "if(event.keyCode == 13){event.returnValue = false;Rum.sendSync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+this.value);};" );
+							$input->setAttribute( 'onkeypress', "if(event.keyCode == 13){event.returnValue = false;Rum.sendSync('".\Rum::config()->uri."', '".$this->getRequestData().'&'.$this->getHTMLControlId().'__filter_name='.$column["DataField"].'&'.$this->getHTMLControlId()."__filter_value='+encodeURIComponent(this.value));};" );
 						}
 
 						$th->addChild( $input );
@@ -1405,7 +1406,7 @@
 						throw new \System\Base\InvalidOperationException("Could not run expression in GridView on column `".$column["DataField"]."`: \$html = " . ($html) . ';');
 					}
 
-					$td->innerHtml = $html?$html:'&nbsp;';
+					$td->innerHtml = strlen($html)>0?$html:'&nbsp;';
 				}
 
 				// add td element to tr

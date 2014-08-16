@@ -41,6 +41,10 @@
 					if( $this->comparePassword( $ds[$this->credential['password-field']], $password, isset($this->credential['salt-field'])?$ds[$this->credential['salt-field']]:'' )) {
 						if( $this->checkFailedCount( $ds )) {
 							if( $this->checkAccountActive( $ds )) {
+
+								// Raise event
+								\System\Base\ApplicationBase::getInstance()->events->raise(new \System\Base\Events\AuthenticateEvent(), $this, $ds->row);
+
 								// Success!
 								return new AuthenticationStatus();
 							}
