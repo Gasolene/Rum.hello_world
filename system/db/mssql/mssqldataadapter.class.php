@@ -433,13 +433,13 @@
 		 */
 		public function addTableSchema( \System\DB\TableSchema &$tableSchema )
 		{
+			$primaryKeys = array();
+			$indexKeys = array();
+			$uniqueKeys = array();
 			$columns = "";
 
 			foreach($tableSchema->columnSchemas as $columnSchema)
 			{
-				$primaryKeys = array();
-				$indexKeys = array();
-				$uniqueKeys = array();
 				$type = "";
 
 				if($columnSchema->integer)
@@ -465,6 +465,10 @@
 				elseif($columnSchema->datetime)
 				{
 					$type = "DATETIME";
+				}
+				elseif($columnSchema->blob)
+				{
+					$type = "VARBINARY({$columnSchema->length})";
 				}
 				else
 				{

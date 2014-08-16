@@ -142,11 +142,18 @@
 
 			// Event handling
 			$this->events->add(new Events\ApplicationRunEvent());
+			$this->events->add(new Events\AuthenticateEvent());
 
-			$onRunMethod = 'on'.ucwords($this->id).'Run';
+			$onRunMethod = 'onRun';
 			if(\method_exists($this, $onRunMethod))
 			{
 				$this->events->registerEventHandler(new Events\ApplicationRunEventHandler('\System\Base\ApplicationBase::getInstance()->' . $onRunMethod));
+			}
+
+			$onAuthMethod = 'onAuthenticate';
+			if(\method_exists($this, $onAuthMethod))
+			{
+				$this->events->registerEventHandler(new Events\AuthenticateEventHandler('\System\Base\ApplicationBase::getInstance()->' . $onAuthMethod));
 			}
 		}
 
@@ -231,6 +238,8 @@
 			{
 				if( !$this->running )
 				{
+					$env = $this->getEnv();
+
 					// lock ServletBase
 					$this->running = true;
 
@@ -244,7 +253,7 @@
 					$this->loadAppConfig( __CONFIG_PATH__ . __APP_CONF_FILENAME__ );
 
 					// load env application configuration
-					if($_SERVER[__ENV_PARAMETER__]) $this->loadAppConfig( __ENV_PATH__ . '/' . strtolower($_SERVER[__ENV_PARAMETER__]) . __APP_CONF_FILENAME__ );
+					if($env) $this->loadAppConfig( __ENV_PATH__ . '/' . strtolower($env) . __APP_CONF_FILENAME__ );
 
 					// get handles
 					$this->cache = $this->getCache();
@@ -342,6 +351,7 @@
 			if($appConfigObj)
 			{
 				$this->config = $appConfigObj;
+				$this->dataAdapter = null;
 				$this->debug = ( $this->config->state == AppState::debug() )?TRUE:FALSE;
 				return;
 			}
@@ -429,6 +439,14 @@
 		{
 			ApplicationBase::getInstance()->handleShutDown();
 		}
+
+
+		/**
+		 * returns the environment
+		 *
+		 * @return  string
+		 */
+		abstract protected function getEnv();
 
 
 		/**
@@ -540,7 +558,7 @@
 			if( !$this->dataAdapter )
 			{
 				// create dataAdapter
-				$this->dataAdapter = \System\DB\DataAdapter::create( ApplicationBase::getInstance()->config->dsn );
+				$this->dataAdapter = \System\DB\DataAdapter::create( ApplicationBase::getInstance()->config->dsn, ApplicationBase::getInstance()->config->db_username, ApplicationBase::getInstance()->config->db_password );
 			}
 
 			return $this->dataAdapter;
